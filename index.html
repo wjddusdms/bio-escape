@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BIO-MASTER WEB APP</title>
+    <style>
+        :root { --neon: #00ffcc; --gold: #ffcc00; --bg: #0d1117; --panel: #161b22; --danger: #ff4444; }
+        
+        body { 
+            background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; 
+            margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; touch-action: manipulation;
+        }
+        
+        #game-frame { 
+            width: 100%; max-width: 600px; min-height: 100vh;
+            background: var(--panel); position: relative; display: flex; flex-direction: column;
+            border-left: 1px solid var(--neon); border-right: 1px solid var(--neon);
+        }
+        
+        #status-bar { 
+            background: rgba(0,255,204,0.1); padding: 15px; 
+            display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon);
+            font-size: 0.9rem; position: sticky; top: 0; z-index: 100;
+        }
+        
+        /* 모바일 최적화 그리드 (2열 배치) */
+        .node-container { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px;
+            flex-grow: 1;
+        }
+        
+        .node { 
+            height: 80px; border: 2px solid var(--neon); border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; background: rgba(0,255,204,0.05); font-size: 0.8rem; text-align: center;
+        }
+        .node:active { background: rgba(0,255,204,0.3); transform: scale(0.95); }
+        .node.solved { opacity: 0.1; pointer-events: none; border-color: #333; }
+        .node.final-node { border-color: var(--gold); color: var(--gold); }
+
+        /* 인벤토리 (하단 고정) */
+        #inventory-panel { 
+            padding: 15px; background: rgba(0,0,0,0.8); 
+            border-top: 2px solid var(--gold); font-size: 0.8rem;
+        }
+        .archive-box { margin-bottom: 10px; border: 1px solid rgba(255,204,0,0.3); padding: 10px; border-radius: 8px; }
+        .hint-text { color: var(--gold); font-family: monospace; font-size: 1rem; margin-top: 5px; word-break: break-all; }
+
+        /* 모달 스타일 (전체화면 대응) */
+        .modal { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 90%; max-width: 400px; background: #0d1117; border: 2px solid var(--neon); 
+            padding: 20px; border-radius: 20px; z-index: 2000; text-align: center; box-shadow: 0 0 100px #000;
+        }
+        .opt-btn { 
+            width: 100%; padding: 15px; margin: 8px 0; background: #1c2128; 
+            border: 1px solid #30363d; color: #fff; cursor: pointer; border-radius: 10px; font-size: 1rem;
+        }
+        input { 
+            width: 100%; padding: 15px; box-sizing: border-box; background: #000; 
+            border: 1px solid var(--neon); color: #fff; border-radius: 10px; margin: 10px 0; font-size: 1.2rem;
+        }
+        
+        .gate-area { padding: 20px; text-align: center; background: rgba(255,68,68,0.1); }
+        .confirm-btn { 
+            width: 100%; padding: 15px; background: var(--neon); color: #000; 
+            border: none; font-weight: bold; cursor: pointer; border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-frame">
+    <div id="status-bar">
+        <span>BIO-MASTER APP v3.5</span>
+        <span id="score">0 / 16</span>
+    </div>
+
+    <div class="node-container">
+        <script>
+            const titles = ["생물 특성", "물질대사", "구성 단계", "에너지 흐름", "상호작용", "항상성(A)", 
+                            "색상 분류", "파장 추리", "언어 복구", "조건 분석", "패턴 매칭", "항상성(B)",
+                            "그래프 분석", "DNA 추리", "에너지 효율", "통합 인증"];
+            for(let i=1; i<=16; i++) {
+                let isFinal = i >= 13 ? 'final-node' : '';
+                document.write(`<div id="n${i}" class="node ${isFinal}" onclick="openModal(${i})"><b>NODE ${i < 10 ? '0'+i : i}</b><br>${titles[i-1]}</div>`);
+            }
+        </script>
+    </div>
+
+    <div class="gate-area">
+        <button class="confirm-btn" style="background:var(--danger); color:#fff;" onclick="openModal('Final')">🔐 MASTER GATE 접속</button>
+    </div>
+
+    <div id="inventory-panel">
+        <div class="archive-box">
+            <span>[PRIMARY]</span> <span id="text-hints" class="hint-text">_ _ _ _ _ _</span>
+            <div id="data-hints" style="font-size:0.7rem; color:var(--neon); margin-top:5px;">🎨:? | 🔤:? | 🔢:? ? ?</div>
+        </div>
+        <div class="archive-box">
+            <span>[HYPER-DATA]</span> <div id="hyper-hints" class="hint-text">N13:? | N14:? | N15:? | N16:?</div>
+        </div>
+    </div>
+
+    <div id="modal-container">
+        <div id="modal1" class="modal">
+            <h3>🔬 NODE 01</h3><p>바이러스가 생물과 다른 점은?</p>
+            <button class="opt-btn" onclick="solve(1, 'B', 'B 획득')">세포 구조가 없다</button>
+            <button class="opt-btn" onclick="wrong()">유전 물질이 없다</button>
+        </div>
+        <div id="modal7" class="modal">
+            <h3>🎨 NODE 07</h3><p>광합성은 어떤 반응?</p>
+            <button class="opt-btn" style="color:var(--neon)" onclick="solve(7, '3', '파랑=3 획득')">동화 작용(파랑)</button>
+        </div>
+        <div id="modal13" class="modal">
+            <h3>📊 NODE 13</h3>
+            
+
+[Image of enzyme activation energy graph]
+
+            <p>효소가 낮춘 활성화 에너지(kJ)? (50->20)</p>
+            <input type="number" id="ans13">
+            <button class="opt-btn" onclick="if(document.getElementById('ans13').value=='30') solve(13, '30', '30 획득')">입력</button>
+        </div>
+        <div id="modalFinal" class="modal">
+            <h3>🔐 MASTER GATE</h3>
+            <input type="text" id="f-text" placeholder="TEXT CODE">
+            <input type="number" id="f-num" placeholder="NUM CODE">
+            <input type="number" id="f-hyper" placeholder="HYPER CODE">
+            <button class="confirm-btn" onclick="checkFinalGate()">승인</button>
+            <button class="opt-btn" onclick="closeModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let textHints = ["_", "_", "_", "_", "_", "_"];
+    let dataHints = { color: "?", lang: "?", a: "?", b: "?", c: "?" };
+    let hyperHints = { n13: "?", n14: "?", n15: "?", n16: "?" };
+    let solvedCount = 0;
+
+    function openModal(n) {
+        closeModal();
+        const m = document.getElementById('modal' + n);
+        if(m) m.style.display = 'block';
+    }
+
+    function closeModal() {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    }
+
+    function solve(n, val, msg) {
+        alert(msg);
+        closeModal();
+        document.getElementById('n' + n).classList.add('solved');
+        
+        if(n <= 6) {
+            textHints[n-1] = val;
+            document.getElementById('text-hints').innerText = textHints.join(" ");
+        } else if(n >= 7 && n <= 12) {
+            if(n==7) dataHints.color = val;
+            // ... 나머지 데이터 매핑 ...
+            document.getElementById('data-hints').innerText = `🎨:${dataHints.color} | 🔤:${dataHints.lang} | 🔢:${dataHints.a} ${dataHints.b} ${dataHints.c}`;
+        } else {
+            if(n==13) hyperHints.n13 = val;
+            if(n==14) hyperHints.n14 = val;
+            if(n==15) hyperHints.n15 = val;
+            if(n==16) hyperHints.n16 = val;
+            document.getElementById('hyper-hints').innerText = `N13:${hyperHints.n13} | N14:${hyperHints.n14} | N15:${hyperHints.n15} | N16:${hyperHints.n16}`;
+        }
+        solvedCount++;
+        document.getElementById('score').innerText = `${solvedCount} / 16`;
+    }
+
+    function checkFinalGate() {
+        if(document.getElementById('f-text').value.toUpperCase()==="BIOLOG" && 
+           document.getElementById('f-num').value==="519" && 
+           document.getElementById('f-hyper').value==="303015") {
+            alert("🔓 SUCCESS!");
+            document.body.innerHTML = "<h1 style='color:var(--neon); text-align:center; margin-top:40%'>STAGE 1 CLEAR!</h1>";
+        } else {
+            alert("ACCESS DENIED");
+        }
+    }
+    function wrong() { alert("WRONG DATA"); }
+</script>
+</body>
+</html>
