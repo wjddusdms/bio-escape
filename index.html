@@ -3,128 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BIO-MASTER: THE ORIGIN v7.0</title>
+    <title>BIO-MASTER: TOTAL RECOVERY</title>
     <style>
-        :root { --neon: #00ffcc; --gold: #ffcc00; --bg: #050a10; --panel: #0d1624; --danger: #ff4444; }
+        :root { 
+            --neon-s1: #00ffcc; 
+            --neon-s2: #00d4ff; 
+            --gold: #ffcc00; 
+            --bg: #050a10; 
+            --panel: #0d1624; 
+            --danger: #ff4444; 
+            --success: #00ff88;
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
         
-        #game-frame { width: 100%; max-width: 600px; background: var(--panel); position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--neon); border-right: 1px solid var(--neon); height: 100vh; }
-        #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; padding: 30px; justify-content: center; }
-        .story-text { font-family: 'Courier New', monospace; color: var(--neon); line-height: 1.8; margin-bottom: 30px; border-left: 3px solid var(--neon); padding-left: 15px; font-size: 0.95rem; white-space: pre-wrap; }
-
-        #status-bar { background: rgba(0,255,204,0.1); padding: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon); font-size: 0.8rem; }
-        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; flex-grow: 1; padding-bottom: 180px; }
-        .node { height: 80px; border: 1px solid var(--neon); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.02); font-size: 0.75rem; text-align: center; position: relative; transition: 0.3s; }
+        #game-frame { width: 100%; max-width: 600px; background: var(--panel); position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--neon-s1); border-right: 1px solid var(--neon-s1); min-height: 100vh; transition: border 1s; }
+        #status-bar { background: rgba(0,255,204,0.1); padding: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon-s1); position: sticky; top: 0; z-index: 100; font-size: 0.8rem; }
+        
+        /* 노드 영역 */
+        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; padding-bottom: 300px; }
+        .node { height: 85px; border: 1px solid var(--neon-s1); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.02); font-size: 0.75rem; text-align: center; position: relative; transition: 0.3s; }
         .node.solved { opacity: 0; pointer-events: none; }
-        .node.locked { border-color: var(--danger); background: rgba(255, 68, 68, 0.2); color: var(--danger); animation: shake 0.3s; cursor: not-allowed; }
-        .node.locked::after { content: "SYSTEM ERROR"; position: absolute; font-size: 0.5rem; bottom: 5px; font-weight: bold; }
-        
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .node.locked { border-color: var(--danger); background: rgba(255, 68, 68, 0.15); color: var(--danger); animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
 
-        #glitch-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,0,0,0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; border: 4px solid var(--danger); }
-        #glitch-text { color: var(--danger); font-family: 'Courier New', monospace; font-size: 1.4rem; text-shadow: 2px 2px #000; animation: blink 0.1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        .gate-btn { position: fixed; bottom: 165px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 540px; background: var(--danger); color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; z-index: 1000; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); cursor: pointer; }
+        /* 하단 인벤토리 */
         #inventory-panel { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: #000; border-top: 2px solid var(--gold); padding: 8px 15px; z-index: 900; height: 160px; }
         .archive-box { border: 1px solid #333; padding: 5px; margin-bottom: 3px; border-radius: 4px; }
         .hint-text { color: var(--gold); font-family: monospace; font-size: 0.75rem; letter-spacing: 1px; }
 
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; justify-content: center; align-items: center; }
-        .modal { background: #0d1117; border: 2px solid var(--neon); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
+        /* 스테이지 2 아이템 슬롯 */
+        #s2-slots { display: none; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
+        .slot { border: 1px solid #333; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: #555; border-radius: 4px; cursor: pointer; }
+        .slot.has-item { border-color: var(--gold); color: #fff; background: rgba(255,204,0,0.1); }
+        .slot.selected { border-color: #fff; box-shadow: 0 0 10px #fff; }
+
+        /* 인트로 및 전환 오버레이 */
+        #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; padding: 30px; justify-content: center; }
+        .story-text { font-family: 'Courier New', monospace; color: var(--neon-s1); line-height: 1.8; margin-bottom: 25px; border-left: 3px solid var(--neon-s1); padding-left: 15px; font-size: 0.9rem; white-space: pre-wrap; }
+        
+        .gate-btn { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 540px; background: var(--danger); color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; z-index: 1000; cursor: pointer; }
+        
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 6000; justify-content: center; align-items: center; }
+        .modal { background: #0d1117; border: 2px solid var(--neon-s1); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
         .opt-btn { width: 100%; padding: 14px; margin: 6px 0; background: #1c2128; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; }
-        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; }
-        .confirm-btn { width: 100%; padding: 14px; background: var(--neon); color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon-s1); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; }
+        .confirm-btn { width: 100%; padding: 14px; background: var(--neon-s1); color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="game-frame">
-    <div id="status-bar"><span>ST-1: BIOLOGICAL PROOF</span><span id="score">RECOVERY: 0 / 20</span></div>
+    <div id="status-bar"><span id="sys-name">ST-1: BIOLOGICAL PROOF</span><span id="score">RECOVERY: 0 / 20</span></div>
     <div id="node-grid" class="node-container"></div>
-    <button class="gate-btn" onclick="openFinal()">🔑 격리 구역 잠금 해제 (FINAL CODE)</button>
+    <button id="action-btn" class="gate-btn" onclick="openFinalS1()">🔑 격리 구역 잠금 해제 (FINAL)</button>
+    
     <div id="inventory-panel">
-        <div id="ai-status" style="font-size:0.6rem; color:var(--neon); margin-bottom:2px;">AI STATUS: 생체 반응 추적 중...</div>
-        <div class="archive-box"><span id="text-hints" class="hint-text">_ _ _ _ _ _</span></div>
-        <div class="archive-box"><span id="data-hints" class="hint-text">🎨:? | 🔤:? | 🔢:? ? ?</span></div>
-        <div class="archive-box"><span id="hyper-hints" class="hint-text">N13-16: ? ? ? ?</span></div>
-        <div class="archive-box" style="border-color:var(--neon)"><span id="metab-hints" class="hint-text" style="color:var(--neon)">CORE: ? ? ? ?</span></div>
+        <div id="ai-status" style="font-size:0.6rem; color:var(--neon-s1); margin-bottom:2px;">AI STATUS: 분석 대기 중...</div>
+        <div id="s1-hints">
+            <div class="archive-box"><span id="text-hints" class="hint-text">_ _ _ _ _ _</span></div>
+            <div class="archive-box"><span id="data-hints" class="hint-text">🎨:? | 🔤:? | 🔢:? ? ?</span></div>
+            <div class="archive-box"><span id="metab-hints" class="hint-text">CORE: ? ? ? ?</span></div>
+        </div>
+        <div id="s2-slots">
+            <script>for(let i=0; i<8; i++) document.write(`<div class="slot" id="slot${i}" onclick="selectItemS2(${i})">EMPTY</div>`);</script>
+        </div>
     </div>
 </div>
 
 <div id="intro-overlay">
     <div class="story-text" id="type-text"></div>
-    <button id="start-btn" style="display:none; background:var(--neon); color:#000; border:none; padding:15px; font-weight:bold; border-radius:5px; cursor:pointer;" onclick="closeIntro()">프로토콜 승인</button>
-</div>
-
-<div id="glitch-overlay">
-    <div id="glitch-text">ACCESS DENIED</div>
-    <p id="glitch-sub" style="color:#fff; margin-top:20px; font-family:monospace;"></p>
-    <button onclick="closeGlitch()" style="margin-top:30px; background:none; border:1px solid #fff; color:#fff; padding:10px 20px; cursor:pointer;">재동기화 시도</button>
+    <button id="intro-btn" style="display:none; background:var(--neon-s1); color:#000; border:none; padding:15px; font-weight:bold; border-radius:5px; cursor:pointer;" onclick="closeIntro()">프로토콜 시작</button>
 </div>
 
 <div id="modal-overlay"><div id="modal-content" class="modal"></div></div>
 
 <script>
-    const introStr = "눈을 뜨십시오, Subject Genesis.\n\n당신은 기억이 소거된 채 폐기 직전의 배양 탱크에서 발견되었습니다.\n\n시스템 '바이오'는 당신이 지적 능력을 갖춘 '생명체'인지, 아니면 폐기해야 할 '오류 데이터'인지 검증하려 합니다.\n\n세포 속에 각인된 생명의 기본 원리들을 증명해 내십시오. 실패할 경우, 당신의 의식 데이터는 영구 삭제됩니다.";
+    let currentStage = 1;
+    let solvedCount = 0;
+    let inventoryS2 = Array(8).fill(null);
+    let selectedItemIndexS2 = null;
+    let lockedNodeId = null;
 
-    const aiThreats = [
-        "네 뉴런의 전기 신호가 약해지고 있군. 한심해.",
-        "오답이다. 네 뇌세포 한 층이 사멸하는 소리가 들리는군.",
-        "실패할 때마다 배양액의 온도를 1도씩 높이겠다.",
-        "데이터 오염 감지. 시스템이 네 '폐기'를 강력히 권장하고 있다."
-    ];
+    const introS1 = "눈을 뜨십시오, Subject Genesis.\n\n당신은 지금 폐기 구역 배양 탱크에 있습니다. 시스템 '바이오'는 당신이 지적 능력을 가진 '생명체'인지 검증하려 합니다.\n\n생명의 원리들을 증명하십시오. 실패는 곧 소멸입니다.";
+    const introS2 = "격리 구역의 문이 열렸습니다. 하지만 당신이 '생명체 증명'을 위해 쏟아낸 강력한 신경 에너지가 시스템 냉각 장치를 과부하시켰습니다.\n\n시스템 '바이오'가 차갑게 읊조립니다.\n\"인간다운 저항이었군. 하지만 네 인지 기능은 아직 이 서버와 동기화되어 있다.\"\n\n서버가 타버리면 네 의식도 끝이다. 서버의 온도를 낮추고 항상성을 되찾아라. 네 머리가 타버리기 전에.";
 
-    const titles = [
-        "생물 특성", "물질대사", "구성 단계", "에너지 흐름", "상호작용", "항상성(A)", 
-        "색상 분류", "파장 추리", "언어 복구", "조건 분석", "패턴 매칭", "항상성(B)", 
-        "효소 분석", "염기쌍 추리", "에너지 효율", "조절 원리",
-        "세포 호흡", "독성 해독", "배설 중추", "에너지 전환"
-    ];
-
-    const db = {
+    // --- 스테이지 1 DB ---
+    const db1 = {
         1: { q: "바이러스가 생물과 다른 결정적 차이는?", opts: ["세포 구조가 없다", "유전 물질이 없다"], a: 0, h: "B" },
         2: { q: "저분자에서 고분자로 합성되는 동화 작용의 특징은?", opts: ["에너지 흡수", "에너지 방출"], a: 0, h: "I" },
-        3: { q: "식물의 구성 단계: 세포-조직-( )-기관", input: true, a: "조직계", h: "O" },
+        3: { q: "식물의 구성 단계: 세포-조직-( )-기관", input: "조직계", h: "O" },
         4: { q: "에너지는 생태계에서 순환하는가?", opts: ["아니오", "예"], a: 0, h: "L" },
         5: { q: "사자와 사슴의 상호작용은?", opts: ["포식과 피식", "상리 공생"], a: 0, h: "O" },
-        6: { q: "환경 변화에도 내부를 일정하게 유지하는 성질은?", input: true, a: "항상성", h: "G" },
+        6: { q: "환경 변화에도 내부를 일정하게 유지하는 성질은?", input: "항상성", h: "G" },
         7: { q: "광합성은 어떤 에너지 반응인가?", opts: ["동화(파랑)", "이화(빨강)"], a: 0, h: "3" },
-        8: { q: "파란색 파장의 수치(Node 07 결과)는?", input: true, a: "3", h: "ㄱ" },
-        9: { q: "동물의 구성 단계 중 'ㄱㄱㄱ'은?", input: true, a: "기관계", h: "PASS" },
+        8: { q: "파란색 파장의 수치(Node 07 결과)는?", input: "3", h: "ㄱ" },
+        9: { q: "동물의 구성 단계 중 'ㄱㄱㄱ'은?", input: "기관계", h: "PASS" },
         10: { q: "바이러스 증식의 필수 조건은?", opts: ["숙주 세포", "산소"], a: 0, h: "5" },
         11: { q: "상리 공생의 이익 관계 코드는?", opts: ["1", "2"], a: 0, h: "1" },
         12: { q: "체온 상승 시 땀 분비량의 변화는?", opts: ["증가", "감소"], a: 0, h: "9" },
-        13: { q: "효소가 없을 때와 있을 때의 '활성화 에너지 차이'는 수치상 얼마인가? (그래프상 감소량 입력: 50 -> 20)", input: true, a: "30", h: "30" },
-        14: { q: "DNA 이중 나선에서 아데닌(A)이 30개일 때, 상보적 결합을 하는 티민(T)의 개수는?", input: true, a: "30", h: "30" },
-        15: { q: "전 영양 단계의 에너지가 1000이고 현 단계 에너지가 150일 때, 에너지 효율(%)은?", input: true, a: "15", h: "15" },
-        16: { q: "호르몬이나 자율 신경을 통해 내부 환경을 조절하는 시스템 원리는?", opts: ["음성 피드백", "양성 피드백"], a: 0, h: "PASS" },
-        17: { q: "미토콘드리아에서 포도당을 분해해 ATP를 만드는 과정은?", opts: ["세포 호흡", "광합성"], a: 0, h: "A" },
-        18: { q: "암모니아를 독성이 적은 요소로 전환하는 기관은?", input: true, a: "간", h: "T" },
-        19: { q: "콩팥이 속해 있으며 노폐물을 걸러내는 기관계는?", opts: ["배설계", "순환계"], a: 0, h: "P" },
-        20: { q: "세포 호흡 에너지는 ATP와 ( )에너지로 방출된다.", input: true, a: "열", h: "2" }
+        13: { q: "효소가 있을 때와 없을 때의 활성화 에너지 차이값은? (그래프상 50->20 변화)", input: "30", h: "30" },
+        14: { q: "DNA 이중 나선에서 A가 30개일 때, 상보적 염기인 T의 개수는?", input: "30", h: "30" },
+        15: { q: "전 단계 에너지가 1000, 현 단계 에너지가 150일 때 효율(%)은?", input: "15", h: "15" },
+        16: { q: "호르몬이나 자율 신경을 통한 조절 시스템의 핵심 원리는?", opts: ["음성 피드백", "양성 피드백"], a: 0, h: "PASS" },
+        17: { q: "세포 호흡이 주로 일어나는 세포 내 소기관은?", opts: ["미토콘드리아", "엽록체"], a: 0, h: "A" },
+        18: { q: "암모니아를 요소로 전환하여 독성을 제거하는 기관은?", input: "간", h: "T" },
+        19: { q: "콩팥이 포함된 노폐물 배출 기관계는?", opts: ["배설계", "순환계"], a: 0, h: "P" },
+        20: { q: "ATP 생산 시 함께 방출되는 에너지는?", input: "열", h: "2" }
     };
 
-    let textHints = ["_", "_", "_", "_", "_", "_"];
-    let dataHints = { color: "?", lang: "?", a: "?", b: "?", c: "?" };
-    let hyperHints = ["?", "?", "?", "?"];
-    let coreHints = ["?", "?", "?", "?"];
-    let solvedCount = 0;
-    let lockedNodeId = null;
+    // --- 스테이지 2 DB ---
+    const db2 = {
+        1: { title: "전압 펌프", q: "휴지 전위 유지를 위해 Na+와 K+을 수송하는 장치의 이름은?", opts: ["K+ 통로", "나트륨-칼륨 펌프", "시냅스", "수용체"], a: 1, req: null, get: "냉각 핸들" },
+        2: { title: "회로 연결", q: "뉴런의 전도 속도를 높여주는 '말이집 전도'의 다른 명칭은?", opts: ["직선전도", "도약전도", "우회전도", "후진전도"], a: 1, req: "냉각 핸들", get: "Na+ 냉각칩" },
+        3: { title: "신호 감지", q: "Na+ 유입으로 전위가 급격히 상승하는 현상의 명칭은?", opts: ["분극", "탈분극", "재분극", "과분극"], a: 1, req: "Na+ 냉각칩", get: "측정기(+35)" },
+        4: { title: "전위 복구", q: "K+ 유출로 전위가 다시 하강하는 현상의 명칭은?", opts: ["탈분극", "재분극", "도약전도", "과분극"], a: 1, req: "측정기(+35)", get: "보안코드-A" },
+        5: { title: "반사 중추", q: "무의식적인 반응을 조절하며 뇌를 거치지 않는 신호 경로의 중추는?", input: "척수", req: "보안코드-A", get: "척수 회로" },
+        6: { title: "중앙 처리", q: "감각 해석과 수의 운동을 담당하는 뇌의 최고 부위는?", input: "대뇌", req: "척수 회로", get: "메모리(9)" },
+        7: { title: "생명 유지", q: "심장 박동과 호흡 운동을 직접 조절하는 뇌줄기의 부위는?", input: "연수", req: null, get: "심장 모듈" },
+        8: { title: "조절 시스템", q: "내장 기관을 자동 조절하며 교감과 부교감으로 나뉘는 신경계는?", input: "자율신경계", req: "심장 모듈", get: "교감 노드" },
+        9: { title: "비상 가속", q: "긴장 시 활성화되어 심장 박동을 높이는 신경은?", opts: ["교감 신경", "부교감 신경"], a: 0, req: "교감 노드", get: "아드레날린" },
+        10: { title: "진정 회로", q: "부교감 신경 말단에서 분비되는 신경전달물질의 이름은?", input: "아세틸콜린", req: "아드레날린", get: "코드[77]" },
+        11: { title: "전달 방향", q: "시냅스에서 흥분이 전달되는 방향은?", opts: ["한 방향", "양 방향"], a: 0, req: null, get: "방향 칩" },
+        12: { title: "신경망 구분", q: "뇌와 척수에서 온몸으로 뻗어 나가는 신경계의 분류 명칭은?", input: "말초신경계", req: null, get: "연결 잭" },
+        13: { title: "조절 중추", q: "체온과 혈당량을 조절하는 항상성 유지의 핵심 부위는?", input: "간뇌", req: null, get: "냉각 데이터" },
+        14: { title: "상태 유지", q: "내부 환경을 일정하게 유지하려는 성질의 이름은?", input: "항상성", req: null, get: "수리 로그" },
+        15: { title: "상반 조절", q: "교감과 부교감처럼 반대로 작용하여 평형을 맞추는 작용은?", input: "길항작용", req: null, get: "밸런스 칩" },
+        16: { title: "메인 서버", q: "최종 암호: [메모리(9)]와 [측정기(35)]를 합산한 코드를 입력하십시오.", input: "44", req: "코드[77]", get: "EXIT_KEY" }
+    };
 
-    function initNodes() {
+    // --- 핵심 로직 ---
+    function typeWriter(text, elementId, btnId) {
+        let i = 0;
+        const el = document.getElementById(elementId);
+        el.innerHTML = "";
+        document.getElementById(btnId).style.display = "none";
+        function type() {
+            if (i < text.length) {
+                el.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+                i++; setTimeout(type, 30);
+            } else { document.getElementById(btnId).style.display = "block"; }
+        }
+        type();
+    }
+
+    function closeIntro() { 
+        document.getElementById('intro-overlay').style.display = 'none';
+        if(currentStage === 1) initStage1();
+        else initStage2();
+    }
+
+    function initStage1() {
         const grid = document.getElementById('node-grid');
         grid.innerHTML = '';
         for(let i=1; i<=20; i++) {
             const div = document.createElement('div');
-            div.id = 'node-' + i;
+            div.id = `node-${i}`;
             div.className = 'node';
-            div.innerHTML = '<b>NODE ' + (i < 10 ? '0'+i : i) + '</b><br>' + titles[i-1];
-            div.onclick = function() { 
-                if(this.classList.contains('locked')) { alert("시스템 과부하! 다른 노드를 복구하십시오."); return; }
-                openModal(i); 
-            };
+            div.innerHTML = `<b>NODE ${i < 10 ? '0'+i : i}</b>`;
+            div.onclick = () => openModal(i);
             grid.appendChild(div);
         }
     }
@@ -132,99 +169,174 @@
     function openModal(n) {
         const overlay = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
-        const data = db[n];
-        let html = '<h3>NODE ' + (n < 10 ? '0'+n : n) + '</h3><p>' + data.q + '</p>';
+        const data = currentStage === 1 ? db1[n] : db2[n];
+        let html = `<h3>${currentStage === 2 ? data.title : 'NODE ' + n}</h3><p>${data.q}</p>`;
+        
+        if (currentStage === 2 && data.req) {
+            html = `<div style="color:var(--gold); font-size:0.7rem; margin-bottom:10px;">[REQUIRED: ${data.req}]</div>` + html;
+        }
+
         if (data.opts) {
-            data.opts.forEach((opt, idx) => { html += `<button class="opt-btn" onclick="checkAns(${n},${idx})">${opt}</button>`; });
+            data.opts.forEach((opt, idx) => { html += `<button class="opt-btn" onclick="checkAnswer(${n}, ${idx})">${opt}</button>`; });
         } else {
-            html += `<input type="text" id="input-${n}" placeholder="분석 데이터 입력">`;
-            html += `<button class="confirm-btn" onclick="checkAns(${n})">데이터 주입</button>`;
+            html += `<input type="text" id="ans${n}" placeholder="정답 입력...">`;
+            html += `<button class="confirm-btn" onclick="checkAnswer(${n})">데이터 주입</button>`;
         }
         html += `<button class="opt-btn" style="color:#666; border:none;" onclick="closeModal()">취소</button>`;
         content.innerHTML = html;
         overlay.style.display = 'flex';
+        if(!data.opts) setTimeout(()=>document.getElementById(`ans${n}`).focus(), 100);
     }
 
-    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function checkAnswer(n, idx) {
+        const data = currentStage === 1 ? db1[n] : db2[n];
+        let isCorrect = false;
 
-    function checkAns(n, idx) {
-        const data = db[n];
-        let correct = false;
-        if (data.opts) { if (idx === data.a) correct = true; }
-        else { const val = document.getElementById('input-' + n).value.replace(/\s/g, ""); if (val === data.a) correct = true; }
-        
-        if (correct) {
-            updateInv(n, data.h);
-            document.getElementById('node-' + n).classList.add('solved');
+        if (currentStage === 2 && data.req) {
+            const selected = selectedItemIndexS2 !== null ? inventoryS2[selectedItemIndexS2] : null;
+            if (selected !== data.req) {
+                alert(`바이오: "장비 없이는 시스템이 타버릴 거다. '${data.req}'을 장착해라."`);
+                return;
+            }
+        }
+
+        if (data.opts) { if (idx === data.a) isCorrect = true; }
+        else {
+            const val = document.getElementById(`ans${n}`).value.trim().replace(/\s/g, "");
+            const target = currentStage === 1 ? db1[n].h === '3' || db1[n].h === 'ㄱ' || db1[n].h === '30' || db1[n].h === '15' ? db1[n].input : db1[n].input : data.input;
+            if (val === (currentStage === 1 ? db1[n].input : data.input)) isCorrect = true;
+        }
+
+        if (isCorrect) {
+            if (currentStage === 1) updateInvS1(n, data.h);
+            else updateInvS2(data.get);
+
+            document.getElementById(`node-${n}`).classList.add('solved');
             solvedCount++;
-            document.getElementById('score').innerText = 'RECOVERY: ' + solvedCount + ' / 20';
-            if(lockedNodeId) { document.getElementById('node-' + lockedNodeId).classList.remove('locked'); lockedNodeId = null; }
+            const total = currentStage === 1 ? 20 : 16;
+            document.getElementById('score').innerText = `RECOVERY: ${solvedCount} / ${total}`;
+            if(lockedNodeId) { document.getElementById('node-'+lockedNodeId).classList.remove('locked'); lockedNodeId = null; }
             closeModal();
         } else {
-            if(lockedNodeId) document.getElementById('node-' + lockedNodeId).classList.remove('locked');
-            lockedNodeId = n;
-            document.getElementById('node-' + n).classList.add('locked');
-            triggerGlitch(aiThreats[Math.floor(Math.random() * aiThreats.length)]);
+            if(currentStage === 1) {
+                if(lockedNodeId) document.getElementById('node-'+lockedNodeId).classList.remove('locked');
+                lockedNodeId = n;
+                document.getElementById('node-'+n).classList.add('locked');
+                alert(`바이오: "데이터 불일치. 네 뇌세포 한 층이 사멸했군."`);
+            } else { alert(`바이오: "과부하 발생! 회로가 녹아내리고 있다."`); }
             closeModal();
         }
     }
 
-    function triggerGlitch(msg) {
-        const glitch = document.getElementById('glitch-overlay');
-        document.getElementById('glitch-sub').innerText = msg;
-        glitch.style.display = 'flex';
-    }
-    function closeGlitch() { document.getElementById('glitch-overlay').style.display = 'none'; }
+    // --- 스테이지 1 힌트 업데이트 ---
+    let s1h = { text: Array(6).fill("_"), data: {c:'?', l:'?', n:['?','?','?']}, core: Array(4).fill("?") };
+    function updateInvS1(n, h) {
+        if(n <= 6) s1h.text[n-1] = h;
+        else if(n <= 12) {
+            if(n==7) s1h.data.c = h; else if(n==8) s1h.data.l = h;
+            else s1h.data.n[n-10] = h;
+        } else if(n <= 16) s1h.core[n-13] = h;
+        else s1h.core[n-17] = h;
 
-    function updateInv(n, h) {
-        if(n <= 6) { textHints[n-1] = h; document.getElementById('text-hints').innerText = textHints.join(" "); }
-        else if(n >= 7 && n <= 12) {
-            if(n==7) dataHints.color = h; if(n==8) dataHints.lang = h;
-            if(n==10) dataHints.a = h; if(n==11) dataHints.b = h; if(n==12) dataHints.c = h;
-            document.getElementById('data-hints').innerText = '🎨:' + dataHints.color + ' | 🔤:' + dataHints.lang + ' | 🔢:' + dataHints.a + ' ' + dataHints.b + ' ' + dataHints.c;
-        } else if(n >= 13 && n <= 16) {
-            hyperHints[n-13] = h; document.getElementById('hyper-hints').innerText = 'N13-16: ' + hyperHints.join(" ");
-        } else {
-            coreHints[n-17] = h; document.getElementById('metab-hints').innerText = 'CORE: ' + coreHints.join(" ");
-        }
+        document.getElementById('text-hints').innerText = s1h.text.join(" ");
+        document.getElementById('data-hints').innerText = `🎨:${s1h.data.c} | 🔤:${s1h.data.l} | 🔢:${s1h.data.n.join(" ")}`;
+        document.getElementById('metab-hints').innerText = `CORE: ${s1h.core.join(" ")}`;
     }
 
-    function openFinal() {
+    function openFinalS1() {
         const content = document.getElementById('modal-content');
-        content.innerHTML = '<h3>🔐 격리 구역 마스터 게이트</h3>' +
-            '<input type="text" id="f1" placeholder="TEXT(6자)">' +
-            '<input type="text" id="f2" placeholder="NUM(3자)">' +
-            '<input type="text" id="f3" placeholder="CORE(4자)">' +
-            '<button class="confirm-btn" onclick="validate()">격리 해제 실행</button>' +
-            '<button class="opt-btn" style="color:#666;" onclick="closeModal()">취소(돌아가기)</button>';
+        content.innerHTML = `<h3>🔐 격리 구역 마스터 게이트</h3>
+            <input type="text" id="f1" placeholder="TEXT(6자)">
+            <input type="text" id="f2" placeholder="NUM(3자)">
+            <input type="text" id="f3" placeholder="CORE(4자)">
+            <button class="confirm-btn" onclick="validateS1()">격리 해제 프로토콜</button>
+            <button class="opt-btn" onclick="closeModal()">취소</button>`;
         document.getElementById('modal-overlay').style.display = 'flex';
     }
 
-    function validate() {
+    function validateS1() {
         const v1 = document.getElementById('f1').value.toUpperCase();
         const v2 = document.getElementById('f2').value;
         const v3 = document.getElementById('f3').value.toUpperCase();
         if(v1==="BIOLOG" && v2==="519" && v3==="ATP2") {
-            document.body.innerHTML = "<div style='background:#000; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px;'>"+
-            "<h1 style='color:var(--neon); font-size:2.5rem; text-shadow: 0 0 10px var(--neon);'>ESCAPE SUCCESS</h1>"+
-            "<p style='color:#fff; margin-top:20px;'>시스템 '바이오': \"생존 증명을 확인했다. 넌 살아남을 자격이 있군.\"</p>"+
-            "<div style='border:1px solid var(--gold); padding:20px; margin-top:30px; background:rgba(255,204,0,0.05);'>"+
-            "<p style='color:var(--gold); font-size:1.2rem; font-weight:bold;'>[생존 보상 에너지]</p>"+
-            "<p style='color:#fff; line-height:1.6;'>\"생명체는 에너지가 필요하지. <br>지금 즉시 고개를 들어 <b>교실 뒤편 1번 사물함</b>을 확인하라. <br>그곳에 네 육체를 유지할 에너지원(간식)을 배치해 두었다.\"</p>"+
-            "</div></div>";
+            closeModal();
+            showRewardAndTransition();
         } else { alert("인증 데이터 불일치."); }
     }
 
-    let i = 0;
-    function typeWriter() {
-        const text = introStr;
-        if (i < text.length) {
-            document.getElementById("type-text").innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
-            i++; setTimeout(typeWriter, 35);
-        } else { document.getElementById('start-btn').style.display = 'block'; }
+    // --- 리워드 및 전환 ---
+    function showRewardAndTransition() {
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `<h3>🏆 STAGE 1 CLEAR</h3>
+            <p style="color:var(--gold); font-size:1.1rem; font-weight:bold;">[생존 보상 에너지]</p>
+            <p style="color:#fff; line-height:1.6;">"생존 증명을 확인했다. <br>지금 즉시 고개를 들어 <b>교실 뒤편 1번 사물함</b>을 열어라. <br>그곳에 네 육체를 유지할 에너지(간식)를 넣어두었다."</p>
+            <button class="confirm-btn" onclick="triggerS2Intro()">보상 확인 및 중앙 제어실 진입</button>`;
+        document.getElementById('modal-overlay').style.display = 'flex';
     }
-    function closeIntro() { document.getElementById('intro-overlay').style.display = 'none'; initNodes(); }
-    window.onload = typeWriter;
+
+    function triggerS2Intro() {
+        closeModal();
+        document.getElementById('intro-overlay').style.display = 'flex';
+        document.getElementById('intro-btn').innerText = "에너지 정렬 시작";
+        document.getElementById('intro-btn').onclick = startStage2;
+        typeWriter(introS2, "type-text", "intro-btn");
+    }
+
+    function startStage2() {
+        currentStage = 2; solvedCount = 0;
+        document.getElementById('intro-overlay').style.display = 'none';
+        document.getElementById('sys-name').innerText = "ST-2: NEURAL CORE RECOVERY";
+        document.getElementById('score').innerText = "RECOVERY: 0 / 16";
+        document.getElementById('game-frame').style.borderColor = "var(--neon-s2)";
+        document.getElementById('status-bar').style.borderBottomColor = "var(--neon-s2)";
+        document.getElementById('status-bar').style.background = "rgba(0,212,255,0.1)";
+        document.getElementById('ai-status').style.color = "var(--neon-s2)";
+        document.getElementById('ai-status').innerText = "AI STATUS: 과부하 발생... 냉각 장치 가동 필요";
+        
+        document.getElementById('s1-hints').style.display = 'none';
+        document.getElementById('s2-slots').style.display = 'grid';
+        document.getElementById('action-btn').style.display = 'none';
+        initStage2();
+    }
+
+    function initStage2() {
+        const grid = document.getElementById('node-grid');
+        grid.innerHTML = '';
+        const keys = Object.keys(db2).sort(() => Math.random() - 0.5);
+        keys.forEach(k => {
+            const data = db2[k];
+            const div = document.createElement('div');
+            div.className = 'node';
+            div.style.borderColor = 'var(--neon-s2)';
+            div.innerHTML = `<b>${data.title}</b><br><span style="color:var(--gold); font-size:0.45rem;">[REQ: ${data.req || 'NONE'}]</span>`;
+            div.onclick = () => openModal(k);
+            grid.appendChild(div);
+        });
+    }
+
+    function selectItemS2(idx) {
+        if (!inventoryS2[idx]) return;
+        document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+        if (selectedItemIndexS2 === idx) { selectedItemIndexS2 = null; } 
+        else {
+            selectedItemIndexS2 = idx;
+            document.getElementById(`slot${idx}`).classList.add('selected');
+            document.getElementById('ai-status').innerText = `AI STATUS: [${inventoryS2[idx]}] 장착됨`;
+        }
+    }
+
+    function updateInvS2(item) {
+        if(inventoryS2.includes(item)) return;
+        const free = inventoryS2.indexOf(null);
+        if (free !== -1) { 
+            inventoryS2[free] = item; 
+            const slot = document.getElementById(`slot${free}`);
+            slot.innerText = item; slot.classList.add('has-item');
+        }
+    }
+
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    window.onload = () => typeWriter(introS1, "type-text", "intro-btn");
 </script>
 </body>
 </html>
