@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BIO-MASTER: TOTAL RECOVERY v7.7</title>
+    <title>BIO-MASTER: TOTAL RECOVERY v7.8</title>
     <style>
         :root { 
             --neon-s1: #00ffcc; --neon-s2: #00d4ff; --gold: #ffcc00; 
@@ -23,13 +23,13 @@
         .node { height: 85px; border: 1px solid var(--neon-s1); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.02); font-size: 0.75rem; text-align: center; position: relative; transition: 0.3s; padding: 5px; }
         .node.solved { opacity: 0.15; pointer-events: none; filter: grayscale(1); }
         .node.locked { border-color: var(--danger); background: rgba(255, 68, 68, 0.15); color: var(--danger); animation: shake 0.3s; }
+        .node.wait-tune { border-color: var(--warning); filter: sepia(1); cursor: not-allowed; opacity: 0.5; }
         @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
 
         #inventory-panel { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: #000; border-top: 2px solid var(--gold); padding: 8px 15px; z-index: 900; height: 180px; display: flex; flex-direction: column; }
         .archive-box { border: 1px solid #333; padding: 5px; margin-bottom: 3px; border-radius: 4px; }
         .hint-text { color: var(--gold); font-family: monospace; font-size: 0.75rem; letter-spacing: 1px; }
         
-        /* 스테이지 2 슬롯 영역 스크롤 가능하도록 수정 */
         #s2-slots { display: none; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; overflow-y: auto; flex-grow: 1; padding-bottom: 5px; }
         .slot { border: 1px solid #333; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: #555; border-radius: 4px; cursor: pointer; text-align: center; line-height: 1.1; min-height: 42px; }
         .slot.has-item { border-color: var(--gold); color: #fff; background: rgba(255,204,0,0.1); }
@@ -61,7 +61,7 @@
 
         #s3-controls { display: none; gap: 10px; width: 100%; max-width: 400px; margin-top: 10px; }
         .act-btn { flex: 1; padding: 12px; border: 1px solid var(--gold); color: var(--gold); background: none; font-size: 0.8rem; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        .act-btn:disabled { border-color: #333; color: #444; opacity: 0.4; }
+        .act-btn:disabled { border-color: #333; color: #444; opacity: 0.4; cursor: not-allowed; }
         #exit-btn { display: none; background: var(--safe); color: #000; width: 100%; max-width: 400px; padding: 15px; border: none; font-weight: bold; margin-top: 10px; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
@@ -84,7 +84,11 @@
         <div id="s2-slots">
             <script>for(let i=0; i<16; i++) document.write(`<div class="slot" id="slot${i}" onclick="selectItemS2(${i})">EMPTY</div>`);</script>
         </div>
-        <div id="s3-controls"><button id="btn-up" class="act-btn" disabled onclick="tuneS3(18)">농도 높이기 (+18%)</button><button id="btn-down" class="act-btn" disabled onclick="tuneS3(-18)">농도 낮추기 (-18%)</button><button id="exit-btn" onclick="finishStage()">🏁 엔진 최적화 완료</button></div>
+        <div id="s3-controls">
+            <button id="btn-up" class="act-btn" disabled onclick="tuneS3(18)">높이기 (+18%)</button>
+            <button id="btn-down" class="act-btn" disabled onclick="tuneS3(-18)">낮추기 (-18%)</button>
+            <button id="exit-btn" onclick="finishStage()">🏁 엔진 최적화 완료</button>
+        </div>
     </div>
 </div>
 
@@ -101,10 +105,11 @@
     let currentTabS3 = 'GLU';
     let solvedS3 = { GLU: new Set(), OSM: new Set(), TEM: new Set() };
     let statsS3 = { GLU: 75, OSM: 20, TEM: 80 };
+    let waitTuneS3 = false; // 수치 조절 대기 플래그
 
-    const introS1 = "눈을 뜨십시오, Subject Genesis.\n\n당신은 기억이 소거된 채 폐기 직전의 배양 탱크에서 발견되었습니다. 시스템 '바이오'는 당신이 지적 능력을 갖춘 '생명체'인지 검증하려 합니다.\n\n실패는 곧 삭제입니다.";
-    const introS2 = "격리 구역의 문이 열렸습니다. 하지만 당신이 쏟아낸 에너지가 냉각 장치를 과부하시켰습니다.\n\n바이오: \"회로가 엉망이군. 하단 인벤토리(스크롤 가능)에서 아이템을 선택한 상태로 노드를 터치해라. 오타는 어느 정도 허용해주지.\"";
-    const introS3 = "회로를 수리했다고 안심하지 마라. 이제 엔진이 가동되기 시작했으니까.\n\n중앙값을 유지해라. 수치가 데드존에 닿는 순간, 네 의식 또한 셧다운된다.";
+    const introS1 = "눈을 뜨십시오, Subject Genesis.\n\n시스템 '바이오'는 당신이 지적 능력을 갖춘 '생명체'인지 검증하려 합니다.";
+    const introS2 = "바이오: \"회로가 엉망이군. 하단 인벤토리에서 장비를 골라 수리해라.\"";
+    const introS3 = "엔진이 가동되었다. 문제를 맞히고 즉시 수치를 조절하여 평형을 유지해라. 수치를 조절하기 전까지는 다음 데이터에 접근할 수 없다.";
 
     const db1 = {
         1: { q: "바이러스가 생물과 다른 결정적 차이는?", opts: ["세포 구조가 없다", "유전 물질이 없다"], a: 0, h: "B" },
@@ -225,7 +230,6 @@
         let correct = false;
         if (data.opts) { if (idx === data.a) correct = true; }
         else { 
-            // 키워드 정답 처리 로직 적용
             const val = document.getElementById(`ans-${n}`).value.trim().replace(/\s/g, ""); 
             const target = (currentStage === 1 ? db1[n].input : data.input).replace(/\s/g, "");
             if (val.includes(target) || target.includes(val)) correct = true; 
@@ -251,8 +255,7 @@
         if (free !== -1) { 
             inventoryS2[free] = item; 
             const slot = document.getElementById(`slot${free}`);
-            slot.innerText = item; 
-            slot.classList.add('has-item'); 
+            slot.innerText = item; slot.classList.add('has-item'); 
         } 
     }
     
@@ -260,25 +263,92 @@
     function validateS1() { if(document.getElementById('f1').value.toUpperCase()==="BIOLOG" && document.getElementById('f2').value==="519" && document.getElementById('f3').value.toUpperCase()==="ATP2") { closeModal(); showRewardS1(); } else alert("실패."); }
     function showRewardS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🏆 CLEAR</h3><p>"사물함 1번 간식 보급."</p><button class="confirm-btn" onclick="transitionToS2()">STAGE 2</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
 
-    function initStage3() { document.getElementById('sys-name').innerText = "ST-3: HOMEOSTASIS"; document.getElementById('game-frame').style.borderColor = "var(--gold)"; document.getElementById('status-bar').style.borderBottomColor = "var(--gold)"; document.getElementById('s2-slots').style.display = "none"; document.getElementById('repair-progress-container').style.display = "none"; document.getElementById('homeo-monitor').style.display = "flex"; document.getElementById('section-tabs').style.display = "flex"; document.getElementById('s3-controls').style.display = "flex"; updateGaugesS3(); switchTabS3('GLU'); }
-    function switchTabS3(t) { currentTabS3 = t; document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); document.getElementById(`tab-${t.toLowerCase()}`).classList.add('active'); renderNodesS3(); }
-    function renderNodesS3() { const grid = document.getElementById('node-grid'); grid.innerHTML = ''; db3[currentTabS3].forEach((q, i) => { const div = document.createElement('div'); div.className = 'node'; div.style.borderColor = 'var(--gold)'; if(solvedS3[currentTabS3].has(i)) { div.classList.add('solved'); div.innerHTML = "FIXED"; } else { div.innerHTML = `NODE ${i+1}`; div.onclick = () => openModalS3(i); } grid.appendChild(div); }); }
-    function openModalS3(i) { const data = db3[currentTabS3][i]; let html = `<h3>NODE ${i+1}</h3><p>${data.q}</p><input type="text" id="ans-s3"><button class="confirm-btn" onclick="checkAnsS3(${i})">데이터 전송</button>`; document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
+    function initStage3() { 
+        document.getElementById('sys-name').innerText = "ST-3: HOMEOSTASIS"; 
+        document.getElementById('game-frame').style.borderColor = "var(--gold)"; 
+        document.getElementById('s2-slots').style.display = "none"; 
+        document.getElementById('repair-progress-container').style.display = "none"; 
+        document.getElementById('homeo-monitor').style.display = "flex"; 
+        document.getElementById('section-tabs').style.display = "flex"; 
+        document.getElementById('s3-controls').style.display = "flex"; 
+        updateGaugesS3(); switchTabS3('GLU'); 
+    }
+
+    function switchTabS3(t) { 
+        currentTabS3 = t; 
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
+        document.getElementById(`tab-${t.toLowerCase()}`).classList.add('active'); 
+        // 버튼 텍스트 변경 (농도 -> 혈당량/체온)
+        const label = t === 'GLU' ? '혈당량' : (t === 'TEM' ? '체온' : '농도');
+        document.getElementById('btn-up').innerText = `${label} 높이기 (+18%)`;
+        document.getElementById('btn-down').innerText = `${label} 낮추기 (-18%)`;
+        renderNodesS3(); 
+    }
+
+    function renderNodesS3() { 
+        const grid = document.getElementById('node-grid'); grid.innerHTML = ''; 
+        db3[currentTabS3].forEach((q, i) => { 
+            const div = document.createElement('div'); 
+            div.className = 'node'; 
+            div.style.borderColor = 'var(--gold)'; 
+            if(solvedS3[currentTabS3].has(i)) { 
+                div.classList.add('solved'); div.innerHTML = "FIXED"; 
+            } else { 
+                if(waitTuneS3) div.classList.add('wait-tune');
+                div.innerHTML = `NODE ${i+1}`; 
+                div.onclick = () => { if(!waitTuneS3) openModalS3(i); else document.getElementById('ai-status').innerText = "AI: 먼저 수치를 조절해야 합니다."; }; 
+            } 
+            grid.appendChild(div); 
+        }); 
+    }
+
+    function openModalS3(i) { 
+        const data = db3[currentTabS3][i]; 
+        let html = `<h3>NODE ${i+1}</h3><p>${data.q}</p><input type="text" id="ans-s3"><button class="confirm-btn" onclick="checkAnsS3(${i})">데이터 전송</button>`; 
+        document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; 
+    }
     
     function checkAnsS3(i) { 
         const v = document.getElementById('ans-s3').value.trim().replace(/\s/g, ""); 
         const target = db3[currentTabS3][i].a.replace(/\s/g, "");
-        // 키워드 정답 처리 로직 적용
+        // 키워드 정답 처리 (베타세포 -> 베타 만 쳐도 인정)
         if(v.includes(target) || target.includes(v)) { 
             solvedS3[currentTabS3].add(i); 
+            waitTuneS3 = true; // 수치 조절 필수 상태로 변경
             document.getElementById('btn-up').disabled = false; 
             document.getElementById('btn-down').disabled = false; 
-        } else { statsS3[currentTabS3] += statsS3[currentTabS3]>=50 ? 18 : -18; } 
+            document.getElementById('ai-status').innerText = "AI: 정답입니다. 수치를 조절하십시오.";
+        } else { 
+            statsS3[currentTabS3] += statsS3[currentTabS3]>=50 ? 18 : -18; 
+            document.getElementById('ai-status').innerText = "AI: 오답입니다. 수치가 틀어집니다.";
+        } 
         closeModal(); renderNodesS3(); updateGaugesS3(); 
     }
 
-    function tuneS3(v) { statsS3[currentTabS3] += v; document.getElementById('btn-up').disabled = true; document.getElementById('btn-down').disabled = true; updateGaugesS3(); }
-    function updateGaugesS3() { ['GLU', 'OSM', 'TEM'].forEach(t => { const bar = document.getElementById(`bar-${t.toLowerCase()}`); let v = Math.max(0, Math.min(100, statsS3[t])); bar.style.width = v + '%'; bar.style.background = (v >= 40 && v <= 60) ? 'var(--safe)' : (v > 15 && v < 85) ? 'var(--warning)' : 'var(--danger)'; if(v <= 8 || v >= 92) { alert(`붕괴!`); solvedS3[t].clear(); statsS3[t] = 50; switchTabS3(t); } }); const safe = Object.values(statsS3).every(v => v >= 40 && v <= 60); document.getElementById('exit-btn').style.display = safe ? 'block' : 'none'; }
+    function tuneS3(v) { 
+        statsS3[currentTabS3] += v; 
+        waitTuneS3 = false; // 수치 조절 완료, 다음 문제 가능
+        document.getElementById('btn-up').disabled = true; 
+        document.getElementById('btn-down').disabled = true; 
+        document.getElementById('ai-status').innerText = "AI: 수치 조정 완료. 다음 노드 접근 가능.";
+        updateGaugesS3(); renderNodesS3(); 
+    }
+
+    function updateGaugesS3() { 
+        ['GLU', 'OSM', 'TEM'].forEach(t => { 
+            const bar = document.getElementById(`bar-${t.toLowerCase()}`); 
+            let v = Math.max(0, Math.min(100, statsS3[t])); 
+            bar.style.width = v + '%'; 
+            bar.style.background = (v >= 40 && v <= 60) ? 'var(--safe)' : (v > 15 && v < 85) ? 'var(--warning)' : 'var(--danger)'; 
+            if(v <= 8 || v >= 92) { 
+                alert(`시스템 붕괴! 재부팅합니다.`); 
+                solvedS3[t].clear(); statsS3[t] = 50; waitTuneS3 = false; switchTabS3(t); 
+            } 
+        }); 
+        const safe = Object.values(statsS3).every(v => v >= 40 && v <= 60); 
+        document.getElementById('exit-btn').style.display = safe ? 'block' : 'none'; 
+    }
+
     function finishStage() { document.body.innerHTML = "<h1 style='text-align:center; padding-top:40%'>STAGE 3 CLEAR</h1>"; }
 
     window.onload = () => typeWriter(introS1, "type-text", "intro-btn", "var(--neon-s1)");
