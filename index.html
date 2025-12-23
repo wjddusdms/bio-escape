@@ -3,60 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BIO-MASTER v3.7 FINAL</title>
+    <title>BIO-MASTER v3.8 FIX</title>
     <style>
         :root { --neon: #00ffcc; --gold: #ffcc00; --bg: #0d1117; --panel: #161b22; --danger: #ff4444; }
-        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
-        
         #game-frame { width: 100%; max-width: 600px; background: var(--panel); position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--neon); border-right: 1px solid var(--neon); min-height: 100vh; }
-        
         #status-bar { background: rgba(0,255,204,0.1); padding: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon); position: sticky; top: 0; z-index: 100; font-size: 0.9rem; }
-        
-        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; padding-bottom: 120px; }
-        
-        .node { height: 90px; border: 2px solid var(--neon); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.05); font-size: 0.85rem; text-align: center; transition: 0.2s; }
-        .node.solved { opacity: 0.1; pointer-events: none; border-color: #333; }
+        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; padding-bottom: 150px; }
+        .node { height: 90px; border: 2px solid var(--neon); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.05); font-size: 0.85rem; text-align: center; }
+        .node.solved { visibility: hidden; pointer-events: none; }
         .node.final-node { border-color: var(--gold); color: var(--gold); }
-
-        /* 하단 고정 인벤토리 */
         #inventory-panel { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: rgba(13, 17, 23, 0.95); border-top: 2px solid var(--gold); padding: 10px; z-index: 500; }
         .archive-box { border: 1px solid rgba(255,204,0,0.3); padding: 8px; border-radius: 8px; margin-bottom: 5px; }
-        .hint-text { color: var(--gold); font-family: monospace; font-size: 0.9rem; word-break: break-all; }
-
-        /* 모달 시스템 (완전 수정) */
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; justify-content: center; align-items: center; }
-        .modal { background: #0d1117; border: 2px solid var(--neon); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; position: relative; }
-        .modal h3 { color: var(--neon); margin-top: 0; }
-        .opt-btn { width: 100%; padding: 15px; margin: 8px 0; background: #1c2128; border: 1px solid #30363d; color: #fff; border-radius: 10px; font-size: 1rem; cursor: pointer; }
+        .hint-text { color: var(--gold); font-family: monospace; font-size: 0.9rem; }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; }
+        .modal { background: #0d1117; border: 2px solid var(--neon); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .opt-btn { width: 100%; padding: 15px; margin: 8px 0; background: #1c2128; border: 1px solid #30363d; color: #fff; border-radius: 10px; font-size: 1rem; }
         input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--neon); color: #fff; border-radius: 10px; margin: 10px 0; font-size: 1.2rem; text-align: center; }
-        .confirm-btn { width: 100%; padding: 15px; background: var(--neon); color: #000; border: none; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 5px; }
-        .gate-btn { background: var(--danger); color: white; margin: 15px; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .confirm-btn { width: 100%; padding: 15px; background: var(--neon); color: #000; border: none; font-weight: bold; border-radius: 10px; margin-top: 5px; }
+        .gate-btn { background: var(--danger); color: white; margin: 15px; padding: 15px; border: none; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="game-frame">
     <div id="status-bar">
-        <span>BIO-MASTER v3.7</span>
+        <span>BIO-MASTER v3.8 FIXED</span>
         <span id="score">0 / 16</span>
     </div>
 
-    <div id="node-grid" class="node-container"></div>
+    <div id="node-grid" class="node-container">
+        </div>
 
     <button class="gate-btn" onclick="openFinal()">🔐 MASTER GATE 접속</button>
 
     <div id="inventory-panel">
-        <div class="archive-box">
-            <span>[TEXT]</span> <span id="text-hints" class="hint-text">_ _ _ _ _ _</span>
-        </div>
-        <div class="archive-box">
-            <span>[DATA]</span> <span id="data-hints" class="hint-text" style="font-size:0.75rem;">🎨:? | 🔤:? | 🔢:? ? ?</span>
-        </div>
-        <div class="archive-box">
-            <span>[HYPER]</span> <span id="hyper-hints" class="hint-text">N13:? | N14:? | N15:? | N16:?</span>
-        </div>
+        <div class="archive-box"><span>[TEXT]</span> <span id="text-hints" class="hint-text">_ _ _ _ _ _</span></div>
+        <div class="archive-box"><span>[DATA]</span> <span id="data-hints" class="hint-text" style="font-size:0.75rem;">🎨:? | 🔤:? | 🔢:? ? ?</span></div>
+        <div class="archive-box"><span>[HYPER]</span> <span id="hyper-hints" class="hint-text">N13:? | N14:? | N15:? | N16:?</span></div>
     </div>
 </div>
 
@@ -70,7 +55,7 @@
     const db = {
         1: { q: "바이러스가 생물과 다른 점은?", opts: ["세포 구조가 없다", "유전 물질이 없다"], a: 0, h: "B" },
         2: { q: "저분자에서 고분자로 합성되는 반응은?", opts: ["동화 작용", "이화 작용"], a: 0, h: "I" },
-        3: { q: "식물의 구성 단계: 세포-조직-( )-기관", input: true, a: "조직계", h: "O" },
+        3: { q: "식물 구성 단계: 세포-조직-( )-기관", input: true, a: "조직계", h: "O" },
         4: { q: "에너지는 생태계에서 순환하는가?", opts: ["아니오(한방향 흐름)", "예(순환함)"], a: 0, h: "L" },
         5: { q: "사자와 사슴의 관계는?", opts: ["포식과 피식", "상리 공생"], a: 0, h: "O" },
         6: { q: "체내 상태를 일정하게 유지하는 성질?", input: true, a: "항상성", h: "G" },
@@ -91,12 +76,16 @@
     let hyperHints = { n13: "?", n14: "?", n15: "?", n16: "?" };
     let solvedCount = 0;
 
+    // 노드 생성 로직 수정: 각 노드에 명확한 인덱스 부여
     const grid = document.getElementById('node-grid');
     for(let i=1; i<=16; i++) {
         const div = document.createElement('div');
-        div.className = `node ${i >= 13 ? 'final-node' : ''}`;
-        div.innerHTML = `<b>NODE ${i < 10 ? '0'+i : i}</b><br>${titles[i-1]}`;
-        div.onclick = () => openModal(i);
+        div.id = 'node-' + i; // 고유 ID 부여
+        div.className = 'node' + (i >= 13 ? ' final-node' : '');
+        div.innerHTML = '<b>NODE ' + (i < 10 ? '0'+i : i) + '</b><br>' + titles[i-1];
+        div.onclick = (function(n) { 
+            return function() { openModal(n); }; 
+        })(i);
         grid.appendChild(div);
     }
 
@@ -105,17 +94,19 @@
         const content = document.getElementById('modal-content');
         const data = db[n];
         
-        let html = `<h3>NODE ${n < 10 ? '0'+n : n}</h3><p>${data.q}</p>`;
+        if(!data) return; // 데이터 없으면 실행 안함
+
+        let html = '<h3>NODE ' + (n < 10 ? '0'+n : n) + '</h3><p>' + data.q + '</p>';
         
         if (data.opts) {
             data.opts.forEach((opt, idx) => {
-                html += `<button class="opt-btn" onclick="checkAns(${n}, ${idx})">${opt}</button>`;
+                html += '<button class="opt-btn" onclick="checkAns(' + n + ',' + idx + ')">' + opt + '</button>';
             });
         } else {
-            html += `<input type="text" id="input${n}" placeholder="답안 입력" autofocus>`;
-            html += `<button class="confirm-btn" onclick="checkAns(${n})">확인</button>`;
+            html += '<input type="text" id="input-' + n + '" placeholder="답안 입력">';
+            html += '<button class="confirm-btn" onclick="checkAns(' + n + ')">확인</button>';
         }
-        html += `<button class="opt-btn" style="color:#666; border:none;" onclick="closeModal()">취소</button>`;
+        html += '<button class="opt-btn" style="color:#666; border:none;" onclick="closeModal()">닫기</button>';
         
         content.innerHTML = html;
         overlay.style.display = 'flex';
@@ -132,16 +123,18 @@
         if (data.opts) {
             if (idx === data.a) correct = true;
         } else {
-            const val = document.getElementById(`input${n}`).value.replace(/\s/g, "");
+            const inputField = document.getElementById('input-' + n);
+            const val = inputField.value.replace(/\s/g, "");
             if (val === data.a) correct = true;
         }
 
         if (correct) {
             alert("정답입니다!");
             updateInv(n, data.h);
-            document.getElementsByClassName('node')[n-1].classList.add('solved');
+            const targetNode = document.getElementById('node-' + n);
+            if(targetNode) targetNode.classList.add('solved');
             solvedCount++;
-            document.getElementById('score').innerText = `${solvedCount} / 16`;
+            document.getElementById('score').innerText = solvedCount + ' / 16';
             closeModal();
         } else {
             alert("다시 생각해보세요.");
@@ -149,28 +142,28 @@
     }
 
     function updateInv(n, h) {
-        if(n <= 6) { textHints[n-1] = h; document.getElementById('text-hints').innerText = textHints.join(" "); }
-        else if(n >= 7 && n <= 12) {
+        if(n <= 6) { 
+            textHints[n-1] = h; 
+            document.getElementById('text-hints').innerText = textHints.join(" "); 
+        } else if(n >= 7 && n <= 12) {
             if(n==7) dataHints.color = h; if(n==8) dataHints.lang = h;
             if(n==10) dataHints.a = h; if(n==11) dataHints.b = h; if(n==12) dataHints.c = h;
-            document.getElementById('data-hints').innerText = `🎨:${dataHints.color} | 🔤:${dataHints.lang} | 🔢:${dataHints.a} ${dataHints.b} ${dataHints.c}`;
+            document.getElementById('data-hints').innerText = '🎨:' + dataHints.color + ' | 🔤:' + dataHints.lang + ' | 🔢:' + dataHints.a + ' ' + dataHints.b + ' ' + dataHints.c;
         } else {
             if(n==13) hyperHints.n13 = h; if(n==14) hyperHints.n14 = h;
             if(n==15) hyperHints.n15 = h; if(n==16) hyperHints.n16 = h;
-            document.getElementById('hyper-hints').innerText = `N13:${hyperHints.n13} | N14:${hyperHints.n14} | N15:${hyperHints.n15} | N16:${hyperHints.n16}`;
+            document.getElementById('hyper-hints').innerText = 'N13:' + hyperHints.n13 + ' | N14:' + hyperHints.n14 + ' | N15:' + hyperHints.n15 + ' | N16:' + hyperHints.n16;
         }
     }
 
     function openFinal() {
         const content = document.getElementById('modal-content');
-        content.innerHTML = `
-            <h3>🔐 MASTER GATE</h3>
-            <input type="text" id="f1" placeholder="TEXT(6자)">
-            <input type="number" id="f2" placeholder="NUM(3자)">
-            <input type="number" id="f3" placeholder="HYPER(6자)">
-            <button class="confirm-btn" onclick="validate()">승인</button>
-            <button class="opt-btn" onclick="closeModal()">닫기</button>
-        `;
+        content.innerHTML = '<h3>🔐 MASTER GATE</h3>' +
+            '<input type="text" id="f1" placeholder="TEXT(6자)">' +
+            '<input type="number" id="f2" placeholder="NUM(3자)">' +
+            '<input type="number" id="f3" placeholder="HYPER(6자)">' +
+            '<button class="confirm-btn" onclick="validate()">승인</button>' +
+            '<button class="opt-btn" onclick="closeModal()">닫기</button>';
         document.getElementById('modal-overlay').style.display = 'flex';
     }
 
