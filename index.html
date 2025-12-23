@@ -53,8 +53,12 @@
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 6000; justify-content: center; align-items: center; }
         .modal { background: #0d1117; border: 2px solid var(--neon-s1); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
         .opt-btn { width: 100%; padding: 14px; margin: 6px 0; background: #1c2128; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; }
-        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon-s1); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; font-size: 1rem; }
+        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon-s1); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; font-size: 1.2rem; }
         
+        /* 전송 버튼 크게 수정 */
+        .confirm-btn { width: 100%; padding: 22px; background: var(--neon-s1); color: #000; border: none; font-weight: 900; border-radius: 12px; cursor: pointer; font-size: 1.4rem; margin-top: 10px; box-shadow: 0 0 15px var(--neon-s1); transition: 0.2s; }
+        .confirm-btn:active { transform: scale(0.98); box-shadow: 0 0 5px var(--neon-s1); }
+
         #s3-controls { display: none; gap: 10px; width: 100%; max-width: 400px; margin-top: 10px; }
         .act-btn { flex: 1; padding: 12px; border: 1px solid var(--gold); color: var(--gold); background: none; font-size: 0.8rem; cursor: pointer; border-radius: 5px; font-weight: bold; }
         .act-btn:disabled { border-color: #333; color: #444; opacity: 0.4; }
@@ -208,8 +212,8 @@
         const data = currentStage === 1 ? db1[n] : db2[n];
         let html = `<h3>${currentStage===2 ? data.title : 'NODE '+n}</h3><p>${data.q}</p>`;
         if (data.opts) data.opts.forEach((o, i) => html += `<button class="opt-btn" onclick="checkAns(${n},${i})">${o}</button>`);
-        else html += `<input type="text" id="ans-${n}" placeholder="입력..."><button class="confirm-btn" onclick="checkAns(${n})">전송</button>`;
-        html += `<button class="opt-btn" style="color:#666;" onclick="closeModal()">취소</button>`;
+        else html += `<input type="text" id="ans-${n}" placeholder="입력..."><button class="confirm-btn" onclick="checkAns(${n})">데이터 전송</button>`;
+        html += `<button class="opt-btn" style="color:#666; border:none;" onclick="closeModal()">취소</button>`;
         document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex';
     }
 
@@ -233,15 +237,14 @@
         else if(n<=12) dh.innerText = dh.innerText.replace('?', h); else mh.innerText = mh.innerText.replace('?', h);
     }
     function updateInvS2(item) { const free = inventoryS2.indexOf(null); if (free !== -1) { inventoryS2[free] = item; document.getElementById(`slot${free}`).innerText = item; document.getElementById(`slot${free}`).classList.add('has-item'); } }
-    function openFinalS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🔐 마스터 게이트</h3><input type="text" id="f1" placeholder="TEXT"><input type="text" id="f2" placeholder="NUM"><input type="text" id="f3" placeholder="CORE"><button class="confirm-btn" onclick="validateS1()">인증</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
+    function openFinalS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🔐 마스터 게이트</h3><input type="text" id="f1" placeholder="TEXT"><input type="text" id="f2" placeholder="NUM"><input type="text" id="f3" placeholder="CORE"><button class="confirm-btn" onclick="validateS1()">인증 실행</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
     function validateS1() { if(document.getElementById('f1').value.toUpperCase()==="BIOLOG" && document.getElementById('f2').value==="519" && document.getElementById('f3').value.toUpperCase()==="ATP2") { closeModal(); showRewardS1(); } else alert("실패."); }
     function showRewardS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🏆 CLEAR</h3><p>"사물함 1번 간식 보급."</p><button class="confirm-btn" onclick="transitionToS2()">STAGE 2</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
 
-    // S3 (생략 로직 유지)
     function initStage3() { document.getElementById('sys-name').innerText = "ST-3: HOMEOSTASIS"; document.getElementById('game-frame').style.borderColor = "var(--gold)"; document.getElementById('status-bar').style.borderBottomColor = "var(--gold)"; document.getElementById('s2-slots').style.display = "none"; document.getElementById('repair-progress-container').style.display = "none"; document.getElementById('homeo-monitor').style.display = "flex"; document.getElementById('section-tabs').style.display = "flex"; document.getElementById('s3-controls').style.display = "flex"; updateGaugesS3(); switchTabS3('GLU'); }
     function switchTabS3(t) { currentTabS3 = t; document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); document.getElementById(`tab-${t.toLowerCase()}`).classList.add('active'); renderNodesS3(); }
     function renderNodesS3() { const grid = document.getElementById('node-grid'); grid.innerHTML = ''; db3[currentTabS3].forEach((q, i) => { const div = document.createElement('div'); div.className = 'node'; div.style.borderColor = 'var(--gold)'; if(solvedS3[currentTabS3].has(i)) { div.classList.add('solved'); div.innerHTML = "FIXED"; } else { div.innerHTML = `NODE ${i+1}`; div.onclick = () => openModalS3(i); } grid.appendChild(div); }); }
-    function openModalS3(i) { const data = db3[currentTabS3][i]; let html = `<h3>NODE ${i+1}</h3><p>${data.q}</p><input type="text" id="ans-s3"><button class="confirm-btn" onclick="checkAnsS3(${i})">전송</button>`; document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
+    function openModalS3(i) { const data = db3[currentTabS3][i]; let html = `<h3>NODE ${i+1}</h3><p>${data.q}</p><input type="text" id="ans-s3"><button class="confirm-btn" onclick="checkAnsS3(${i})">데이터 전송</button>`; document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
     function checkAnsS3(i) { const v = document.getElementById('ans-s3').value.trim().replace(/\s/g, ""); if(v === db3[currentTabS3][i].a) { solvedS3[currentTabS3].add(i); document.getElementById('btn-up').disabled = false; document.getElementById('btn-down').disabled = false; } else { statsS3[currentTabS3] += statsS3[currentTabS3]>=50 ? 18 : -18; } closeModal(); renderNodesS3(); updateGaugesS3(); }
     function tuneS3(v) { statsS3[currentTabS3] += v; document.getElementById('btn-up').disabled = true; document.getElementById('btn-down').disabled = true; updateGaugesS3(); }
     function updateGaugesS3() { ['GLU', 'OSM', 'TEM'].forEach(t => { const bar = document.getElementById(`bar-${t.toLowerCase()}`); let v = Math.max(0, Math.min(100, statsS3[t])); bar.style.width = v + '%'; bar.style.background = (v >= 40 && v <= 60) ? 'var(--safe)' : (v > 15 && v < 85) ? 'var(--warning)' : 'var(--danger)'; if(v <= 8 || v >= 92) { alert(`붕괴!`); solvedS3[t].clear(); statsS3[t] = 50; switchTabS3(t); } }); const safe = Object.values(statsS3).every(v => v >= 40 && v <= 60); document.getElementById('exit-btn').style.display = safe ? 'block' : 'none'; }
