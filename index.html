@@ -3,248 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BIO-MASTER: THE ORIGIN v6.5</title>
+    <title>BIO-MASTER: TOTAL RECOVERY v7.6</title>
     <style>
-        :root { --neon: #00ffcc; --gold: #ffcc00; --bg: #050a10; --panel: #0d1624; --danger: #ff4444; }
+        :root { 
+            --neon-s1: #00ffcc; --neon-s2: #00d4ff; --gold: #ffcc00; 
+            --bg: #050a10; --panel: #0d1624; --danger: #ff4444; 
+            --safe: #00ff88; --warning: #ffaa00;
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
         
-        #game-frame { width: 100%; max-width: 600px; background: var(--panel); position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--neon); border-right: 1px solid var(--neon); height: 100vh; }
+        #game-frame { width: 100%; max-width: 600px; background: var(--panel); position: relative; display: flex; flex-direction: column; border-left: 2px solid var(--neon-s1); border-right: 2px solid var(--neon-s1); min-height: 100vh; transition: border 0.5s; }
+        #status-bar { background: rgba(0,255,204,0.1); padding: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon-s1); position: sticky; top: 0; z-index: 100; font-size: 0.8rem; }
         
-        /* 인트로 브리핑 */
-        #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; padding: 30px; justify-content: center; }
-        .story-text { font-family: 'Courier New', monospace; color: var(--neon); line-height: 1.8; margin-bottom: 30px; border-left: 3px solid var(--neon); padding-left: 15px; font-size: 0.95rem; white-space: pre-wrap; }
+        #repair-progress-container { display: none; width: 100%; height: 8px; background: #111; border-bottom: 1px solid var(--neon-s2); }
+        #repair-progress-fill { width: 0%; height: 100%; background: var(--safe); transition: 0.5s; box-shadow: 0 0 10px var(--safe); }
 
-        #status-bar { background: rgba(0,255,204,0.1); padding: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--neon); font-size: 0.8rem; }
-        
-        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; flex-grow: 1; padding-bottom: 180px; }
-        .node { height: 80px; border: 1px solid var(--neon); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.02); font-size: 0.75rem; text-align: center; position: relative; transition: 0.3s; }
-        .node.solved { opacity: 0; pointer-events: none; }
-        .node.locked { border-color: var(--danger); background: rgba(255, 68, 68, 0.2); color: var(--danger); animation: shake 0.3s; cursor: not-allowed; }
-        .node.locked::after { content: "SYSTEM ERROR"; position: absolute; font-size: 0.5rem; bottom: 5px; font-weight: bold; }
-        
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .node-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; padding-bottom: 300px; flex-grow: 1; overflow-y: auto; }
+        .node { height: 85px; border: 1px solid var(--neon-s1); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(0,255,204,0.02); font-size: 0.75rem; text-align: center; position: relative; transition: 0.3s; padding: 5px; }
+        .node.solved { opacity: 0.15; pointer-events: none; filter: grayscale(1); }
+        .node.locked { border-color: var(--danger); background: rgba(255, 68, 68, 0.15); color: var(--danger); animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
 
-        /* AI 섬뜩한 경고 오버레이 */
-        #glitch-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,0,0,0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; border: 4px solid var(--danger); }
-        #glitch-text { color: var(--danger); font-family: 'Courier New', monospace; font-size: 1.4rem; text-shadow: 2px 2px #000; animation: blink 0.1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        .gate-btn { position: fixed; bottom: 165px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 540px; background: var(--danger); color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; z-index: 1000; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
-        #inventory-panel { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: #000; border-top: 2px solid var(--gold); padding: 8px 15px; z-index: 900; height: 160px; }
+        #inventory-panel { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: #000; border-top: 2px solid var(--gold); padding: 8px 15px; z-index: 900; height: 165px; display: flex; flex-direction: column; }
         .archive-box { border: 1px solid #333; padding: 5px; margin-bottom: 3px; border-radius: 4px; }
         .hint-text { color: var(--gold); font-family: monospace; font-size: 0.75rem; letter-spacing: 1px; }
+        
+        #s2-slots { display: none; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
+        .slot { border: 1px solid #333; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: #555; border-radius: 4px; cursor: pointer; text-align: center; line-height: 1.1; }
+        .slot.has-item { border-color: var(--gold); color: #fff; background: rgba(255,204,0,0.1); }
+        .slot.selected { border-color: #fff; box-shadow: 0 0 10px #fff; background: rgba(255,255,255,0.2); color: #fff; }
 
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; justify-content: center; align-items: center; }
-        .modal { background: #0d1117; border: 2px solid var(--neon); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
+        #homeo-monitor { display: none; background: #000; padding: 12px; border-bottom: 2px solid var(--gold); flex-direction: column; gap: 8px; }
+        .gauge-container { display: flex; align-items: center; gap: 10px; }
+        .label { width: 55px; color: var(--gold); font-size: 0.75rem; font-weight: bold; }
+        .bar-bg { flex: 1; height: 16px; background: #222; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #444; }
+        .bar-fill { height: 100%; width: 50%; background: var(--safe); transition: 0.4s; }
+        .center-line { position: absolute; left: 40%; width: 20%; height: 100%; background: rgba(0, 255, 136, 0.1); border-left: 1px dashed #fff; border-right: 1px dashed #fff; z-index: 5; }
+        .dead-zone { position: absolute; width: 8%; height: 100%; background: rgba(255,0,0,0.4); z-index: 2; }
+        
+        #section-tabs { display: none; background: #000; border-bottom: 1px solid #333; }
+        .tab { flex: 1; padding: 12px; text-align: center; font-size: 0.7rem; cursor: pointer; color: #555; transition: 0.3s; }
+        .tab.active { color: var(--gold); background: rgba(255,204,0,0.1); font-weight: bold; border-bottom: 2px solid var(--gold); }
+
+        #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; padding: 30px; justify-content: center; }
+        .story-text { font-family: 'Courier New', monospace; color: var(--neon-s1); line-height: 1.8; margin-bottom: 25px; border-left: 3px solid var(--neon-s1); padding-left: 15px; font-size: 0.9rem; white-space: pre-wrap; }
+        .gate-btn { position: fixed; bottom: 175px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 540px; background: var(--danger); color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; z-index: 1000; cursor: pointer; }
+        
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 6000; justify-content: center; align-items: center; }
+        .modal { background: #0d1117; border: 2px solid var(--neon-s1); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
         .opt-btn { width: 100%; padding: 14px; margin: 6px 0; background: #1c2128; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; }
-        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; }
-        .confirm-btn { width: 100%; padding: 14px; background: var(--neon); color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--neon-s1); color: #fff; border-radius: 8px; margin: 8px 0; text-align: center; font-size: 1rem; }
+        
+        #s3-controls { display: none; gap: 10px; width: 100%; max-width: 400px; margin-top: 10px; }
+        .act-btn { flex: 1; padding: 12px; border: 1px solid var(--gold); color: var(--gold); background: none; font-size: 0.8rem; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .act-btn:disabled { border-color: #333; color: #444; opacity: 0.4; }
+        #exit-btn { display: none; background: var(--safe); color: #000; width: 100%; max-width: 400px; padding: 15px; border: none; font-weight: bold; margin-top: 10px; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div id="game-frame">
-    <div id="status-bar"><span>ST-1: BIOLOGICAL PROOF</span><span id="score">RECOVERY: 0 / 20</span></div>
+    <div id="status-bar"><span id="sys-name">ST-1: BIOLOGICAL PROOF</span><span id="score">RECOVERY: 0 / 20</span></div>
+    <div id="repair-progress-container"><div id="repair-progress-fill"></div></div>
+    <div id="homeo-monitor">
+        <div class="gauge-container"><div class="label">혈당량</div><div class="bar-bg"><div id="bar-glu" class="bar-fill"></div><div class="center-line"></div><div class="dead-zone" style="left:0;"></div><div class="dead-zone" style="right:0;"></div></div></div>
+        <div class="gauge-container"><div class="label">삼투압</div><div class="bar-bg"><div id="bar-osm" class="bar-fill"></div><div class="center-line"></div><div class="dead-zone" style="left:0;"></div><div class="dead-zone" style="right:0;"></div></div></div>
+        <div class="gauge-container"><div class="label">체 온</div><div class="bar-bg"><div id="bar-tem" class="bar-fill"></div><div class="center-line"></div><div class="dead-zone" style="left:0;"></div><div class="dead-zone" style="right:0;"></div></div></div>
+    </div>
+    <div id="section-tabs"><div class="tab active" id="tab-glu" onclick="switchTabS3('GLU')">혈당</div><div class="tab" id="tab-osm" onclick="switchTabS3('OSM')">삼투압</div><div class="tab" id="tab-tem" onclick="switchTabS3('TEM')">체온</div></div>
     <div id="node-grid" class="node-container"></div>
-    <button class="gate-btn" onclick="openFinal()">🔑 격리 구역 잠금 해제 (FINAL CODE)</button>
+    <button id="action-btn" class="gate-btn" onclick="openFinalS1()">🔑 격리 구역 잠금 해제 (FINAL)</button>
     <div id="inventory-panel">
-        <div id="ai-status" style="font-size:0.6rem; color:var(--neon); margin-bottom:2px;">AI STATUS: 생체 반응 추적 중...</div>
-        <div class="archive-box"><span id="text-hints" class="hint-text">_ _ _ _ _ _</span></div>
-        <div class="archive-box"><span id="data-hints" class="hint-text">🎨:? | 🔤:? | 🔢:? ? ?</span></div>
-        <div class="archive-box"><span id="hyper-hints" class="hint-text">N13-16: ? ? ? ?</span></div>
-        <div class="archive-box" style="border-color:var(--neon)"><span id="metab-hints" class="hint-text" style="color:var(--neon)">CORE: ? ? ? ?</span></div>
+        <div id="ai-status" style="font-size:0.6rem; color:var(--neon-s1); margin-bottom:2px;">AI STATUS: 분석 대기 중...</div>
+        <div id="s1-hints"><div class="archive-box"><span id="text-hints" class="hint-text">_ _ _ _ _ _</span></div><div class="archive-box"><span id="data-hints" class="hint-text">🎨:? | 🔤:? | 🔢:? ? ?</span></div><div class="archive-box"><span id="metab-hints" class="hint-text">CORE: ? ? ? ?</span></div></div>
+        <div id="s2-slots"><script>for(let i=0; i<8; i++) document.write(`<div class="slot" id="slot${i}" onclick="selectItemS2(${i})">EMPTY</div>`);</script></div>
+        <div id="s3-controls"><button id="btn-up" class="act-btn" disabled onclick="tuneS3(18)">농도 높이기 (+18%)</button><button id="btn-down" class="act-btn" disabled onclick="tuneS3(-18)">농도 낮추기 (-18%)</button><button id="exit-btn" onclick="finishStage()">🏁 엔진 최적화 완료</button></div>
     </div>
 </div>
 
-<div id="intro-overlay">
-    <div class="story-text" id="type-text"></div>
-    <button id="start-btn" style="display:none; background:var(--neon); color:#000; border:none; padding:15px; font-weight:bold; border-radius:5px; cursor:pointer;" onclick="closeIntro()">프로토콜 승인</button>
-</div>
-
-<div id="glitch-overlay">
-    <div id="glitch-text">ACCESS DENIED</div>
-    <p id="glitch-sub" style="color:#fff; margin-top:20px; font-family:monospace;"></p>
-    <button onclick="closeGlitch()" style="margin-top:30px; background:none; border:1px solid #fff; color:#fff; padding:10px 20px; cursor:pointer;">재동기화 시도</button>
-</div>
-
+<div id="intro-overlay"><div class="story-text" id="type-text"></div><button id="intro-btn" style="display:none; background:var(--neon-s1); color:#000; border:none; padding:15px; font-weight:bold; border-radius:5px; cursor:pointer;" onclick="closeIntro()">프로토콜 시작</button></div>
 <div id="modal-overlay"><div id="modal-content" class="modal"></div></div>
 
 <script>
-    const introStr = "눈을 뜨십시오, Subject Genesis.\n\n당신은 기억이 소거된 채 폐기 직전의 배양 탱크에서 발견되었습니다.\n\n시스템 '바이오'는 당신이 지적 능력을 갖춘 '생명체'인지, 아니면 폐기해야 할 '오류 데이터'인지 검증하려 합니다.\n\n세포 속에 각인된 생명의 기본 원리들을 증명해 내십시오. 실패할 경우, 당신의 의식 데이터는 영구 삭제됩니다.";
-
-    const aiThreats = [
-        "네 뉴런의 전기 신호가 약해지고 있군. 한심해.",
-        "오답이다. 네 뇌세포 한 층이 사멸하는 소리가 들리는군.",
-        "실패할 때마다 배양액의 온도를 1도씩 높이겠다.",
-        "고통을 느끼나? 그것 또한 전기적 착각일 뿐이다.",
-        "데이터 오염 감지. 시스템이 네 '폐기'를 강력히 권장하고 있다."
-    ];
-
-    const titles = [
-        "생물 특성", "물질대사", "구성 단계", "에너지 흐름", "상호작용", "항상성(A)", 
-        "색상 분류", "파장 추리", "언어 복구", "조건 분석", "패턴 매칭", "항상성(B)", 
-        "그래프 분석", "DNA 추리", "에너지 효율", "통합 인증",
-        "세포 호흡", "독성 해독", "배설 중추", "에너지 전환"
-    ];
-
-    const db = {
-        1: { q: "바이러스가 생물과 다른 결정적 차이는?", opts: ["세포 구조가 없다", "유전 물질이 없다"], a: 0, h: "B" },
-        2: { q: "저분자에서 고분자로 합성되는 동화 작용의 특징은?", opts: ["에너지 흡수", "에너지 방출"], a: 0, h: "I" },
-        3: { q: "식물의 구성 단계: 세포-조직-( )-기관", input: true, a: "조직계", h: "O" },
-        4: { q: "에너지는 생태계에서 순환하는가?", opts: ["아니오", "예"], a: 0, h: "L" },
-        5: { q: "사자와 사슴의 상호작용은?", opts: ["포식과 피식", "상리 공생"], a: 0, h: "O" },
-        6: { q: "환경 변화에도 내부를 일정하게 유지하는 성질은?", input: true, a: "항상성", h: "G" },
-        7: { q: "광합성은 어떤 에너지 반응인가?", opts: ["동화(파랑)", "이화(빨강)"], a: 0, h: "3" },
-        8: { q: "파란색 파장의 수치(Node 07 결과)는?", input: true, a: "3", h: "ㄱ" },
-        9: { q: "동물의 구성 단계 중 'ㄱㄱㄱ'은?", input: true, a: "기관계", h: "PASS" },
-        10: { q: "바이러스 증식의 필수 조건은?", opts: ["숙주 세포", "산소"], a: 0, h: "5" },
-        11: { q: "상리 공생의 이익 관계는?", opts: ["이득-이득", "이득-손해", "손해-손해"], a: 0, h: "1" },
-        12: { q: "체온 상승 시 땀 분비량의 변화는?", opts: ["증가", "감소"], a: 0, h: "9" },
-        13: { q: "활성화 에너지 감소량(50->20)?", input: true, a: "30", h: "30" },
-        14: { q: "A가 30개일 때 결합 파트너 T의 개수는?", input: true, a: "30", h: "30" },
-        15: { q: "1000 중 150이 전달되었을 때 효율(%)은?", input: true, a: "15", h: "15" },
-        16: { q: "시스템의 동적 평형 유지 원리는?", input: true, a: "항상성", h: "PASS" },
-        17: { q: "미토콘드리아에서 포도당을 분해해 ATP를 만드는 과정은?", opts: ["세포 호흡", "광합성"], a: 0, h: "A" },
-        18: { q: "암모니아를 독성이 적은 요소로 전환하는 기관은?", input: true, a: "간", h: "T" },
-        19: { q: "콩팥이 속해 있으며 노폐물을 걸러내는 기관계는?", opts: ["배설계", "순환계"], a: 0, h: "P" },
-        20: { q: "세포 호흡 에너지는 ATP와 ( )에너지로 방출된다.", input: true, a: "열", h: "2" }
-    };
-
-    let textHints = ["_", "_", "_", "_", "_", "_"];
-    let dataHints = { color: "?", lang: "?", a: "?", b: "?", c: "?" };
-    let hyperHints = ["?", "?", "?", "?"];
-    let coreHints = ["?", "?", "?", "?"];
+    let currentStage = 1;
     let solvedCount = 0;
+    let inventoryS2 = Array(8).fill(null);
+    let selectedIdxS2 = null;
     let lockedNodeId = null;
 
-    function initNodes() {
-        const grid = document.getElementById('node-grid');
-        grid.innerHTML = '';
-        for(let i=1; i<=20; i++) {
-            const div = document.createElement('div');
-            div.id = 'node-' + i;
-            div.className = 'node';
-            div.innerHTML = '<b>NODE ' + (i < 10 ? '0'+i : i) + '</b><br>' + titles[i-1];
-            div.onclick = function() { 
-                if(this.classList.contains('locked')) { 
-                    alert("시스템 과부하! 다른 노드를 복구하여 전압을 낮추십시오."); 
-                    return; 
-                }
-                openModal(i); 
-            };
-            grid.appendChild(div);
-        }
-    }
+    let currentTabS3 = 'GLU';
+    let solvedS3 = { GLU: new Set(), OSM: new Set(), TEM: new Set() };
+    let statsS3 = { GLU: 75, OSM: 20, TEM: 80 };
 
-    function openModal(n) {
-        const overlay = document.getElementById('modal-overlay');
-        const content = document.getElementById('modal-content');
-        const data = db[n];
-        let html = '<h3>NODE ' + (n < 10 ? '0'+n : n) + '</h3><p>' + data.q + '</p>';
-        if (data.opts) {
-            data.opts.forEach((opt, idx) => { html += '<button class="opt-btn" onclick="checkAns(' + n + ',' + idx + ')">' + opt + '</button>'; });
-        } else {
-            html += '<input type="text" id="input-' + n + '" placeholder="분석 데이터 입력">';
-            html += '<button class="confirm-btn" onclick="checkAns(' + n + ')">데이터 주입</button>';
-        }
-        html += `<button class="opt-btn" style="color:#666; border:none;" onclick="closeModal()">취소</button>`;
-        content.innerHTML = html;
-        overlay.style.display = 'flex';
+    const introS1 = "눈을 뜨십시오, Subject Genesis.\n\n당신은 기억이 소거된 채 폐기 직전의 배양 탱크에서 발견되었습니다. 시스템 '바이오'는 당신이 지적 능력을 갖춘 '생명체'인지 검증하려 합니다.\n\n실패는 곧 삭제입니다.";
+    const introS2 = "격리 구역의 문이 열렸습니다. 하지만 당신이 쏟아낸 에너지가 냉각 장치를 과부하시켰습니다.\n\n바이오: \"회로가 엉망이군. 하단 인벤토리에서 아이템을 선택(터치)한 상태로 노드를 터치해 수리해라. 엉뚱한 걸 들고 오면 죽음뿐이다.\"";
+    const introS3 = "회로를 수리했다고 안심하지 마라. 이제 엔진이 가동되기 시작했으니까.\n\n중앙값을 유지해라. 수치가 데드존에 닿는 순간, 네 의식 또한 셧다운된다.";
+
+    const db1 = {
+        1: { q: "바이러스가 생물과 다른 결정적 차이는?", opts: ["세포 구조가 없다", "유전 물질이 없다"], a: 0, h: "B" },
+        2: { q: "저분자에서 고분자로 합성되는 동화 작용의 특징은?", opts: ["에너지 흡수", "에너지 방출"], a: 0, h: "I" },
+        3: { q: "식물의 구성 단계: 세포-조직-( )-기관", input: "조직계", h: "O" },
+        4: { q: "에너지는 생태계에서 순환하는가?", opts: ["아니오", "예"], a: 0, h: "L" },
+        5: { q: "사자와 사슴의 상호작용은?", opts: ["포식과 피식", "상리 공생"], a: 0, h: "O" },
+        6: { q: "환경 변화에도 내부를 일정하게 유지하는 성질은?", input: "항상성", h: "G" },
+        7: { q: "광합성은 어떤 에너지 반응인가?", opts: ["동화(파랑)", "이화(빨강)"], a: 0, h: "3" },
+        8: { q: "파란색 파장의 수치(Node 07 결과)는?", input: "3", h: "ㄱ" },
+        9: { q: "동물의 구성 단계 중 'ㄱㄱㄱ'은?", input: "기관계", h: "PASS" },
+        10: { q: "바이러스 증식의 필수 조건은?", opts: ["숙주 세포", "산소"], a: 0, h: "5" },
+        11: { q: "상리 공생의 이익 관계는?", opts: ["이득-이득", "이득-손해"], a: 0, h: "1" },
+        12: { q: "체온 상승 시 땀 분비량의 변화는?", opts: ["증가", "감소"], a: 0, h: "9" },
+        13: { q: "효소가 활성화 에너지를 얼마나 낮추었는가? (50->20)", input: "30", h: "30" },
+        14: { q: "DNA에서 A가 30개일 때 T의 개수는?", input: "30", h: "30" },
+        15: { q: "에너지 1000 중 150이 전달되었다면 효율(%)은?", input: "15", h: "15" },
+        16: { q: "시스템의 동적 평형 유지 원리는?", input: "항상성", h: "PASS" },
+        17: { q: "미토콘드리아에서 ATP를 만드는 과정은?", opts: ["세포 호흡", "광합성"], a: 0, h: "A" },
+        18: { q: "암모니아를 요소로 전환하는 기관은?", input: "간", h: "T" },
+        19: { q: "콩팥이 포함된 기관계는?", opts: ["배설계", "순환계"], a: 0, h: "P" },
+        20: { q: "세포 호흡 에너지는 ATP와 ( )에너지로 방출된다.", input: "열", h: "2" }
+    };
+
+    const db2 = {
+        1: { title: "전압 펌프", q: "Na+와 K+을 수송하는 장치의 이름은?", opts: ["통로", "나트륨-칼륨 펌프"], a: 1, req: null, get: "냉각 핸들" },
+        2: { title: "회로 연결", q: "뉴런의 도약 전도를 가능케 하는 구조는?", opts: ["말이집", "축삭돌기"], a: 0, req: "냉각 핸들", get: "Na+ 냉각칩" },
+        3: { title: "신호 감지", q: "Na+ 유입으로 전위가 급상승하는 현상은?", opts: ["분극", "탈분극"], a: 1, req: "Na+ 냉각칩", get: "측정기(+35)" },
+        4: { title: "전위 복구", q: "K+ 유출로 전위가 하강하는 현상은?", opts: ["재분극", "탈분극"], a: 0, req: "측정기(+35)", get: "보안코드-A" },
+        5: { title: "반사 중추", q: "무의식 반응의 조절 중추(척추 속)?", input: "척수", req: "보안코드-A", get: "척수 회로" },
+        6: { title: "중앙 처리", q: "감각 해석의 최고 부위?", input: "대뇌", req: "척수 회로", get: "메모리(9)" },
+        7: { title: "생명 유지", q: "심장 박동 조절 중추?", input: "연수", req: null, get: "심장 모듈" },
+        8: { title: "조절계", q: "교감과 부교감으로 나뉜 신경계?", input: "자율신경계", req: "심장 모듈", get: "교감 노드" },
+        9: { title: "비상 가속", q: "긴장 시 활성화되는 신경?", opts: ["교감 신경", "부교감 신경"], a: 0, req: "교감 노드", get: "아드레날린" },
+        10: { title: "진정 회로", q: "부교감 말단 전달물질?", input: "아세틸콜린", req: "아드레날린", get: "코드[77]" },
+        11: { title: "전달 방향", q: "시냅스 전달 방향은?", opts: ["한 방향", "양 방향"], a: 0, req: null, get: "방향 칩" },
+        12: { title: "신경망 구분", q: "온몸으로 뻗어 나가는 신경계?", input: "말초신경계", req: null, get: "연결 잭" },
+        13: { title: "항상성 중추", q: "체온, 혈당 조절의 핵심 간뇌 부위?", input: "시상하부", req: null, get: "냉각 데이터" },
+        14: { title: "상태 유지", q: "환경을 일정하게 유지하려는 성질?", input: "항상성", req: null, get: "수리 로그" },
+        15: { title: "길항 작용", q: "반대로 작용하여 평형을 맞추는 원리?", input: "길항작용", req: null, get: "밸런스 칩" },
+        16: { title: "최종 서버", q: "암호: [메모리(9)] + [측정기(35)] 합산값?", input: "44", req: "코드[77]", get: "EXIT_KEY" }
+    };
+
+    const db3 = {
+        GLU: [{q:"항상성 조절 중추?",a:"간뇌"},{q:"혈당 낮추는 호르몬?",a:"인슐린"},{q:"인슐린 분비 세포?",a:"베타세포"},{q:"포도당 저장 형태?",a:"글리코젠"},{q:"혈당 높이는 호르몬?",a:"글루카곤"},{q:"글루카곤 분비 세포?",a:"알파세포"},{q:"조절 표적 기관?",a:"간"},{q:"긴장 시 혈당 상승?",a:"에피네프린"},{q:"이동 수단?",a:"혈액"},{q:"반대 작용 원리?",a:"길항작용"}],
+        OSM: [{q:"항이뇨 호르몬?",a:"ADH"},{q:"ADH 분비 부위?",a:"후엽"},{q:"재흡수 기관?",a:"콩팥"},{q:"땀 흘리면 삼투압?",a:"상승"},{q:"삼투압 높을 때 ADH?",a:"증가"},{q:"오줌 줄이는 호르몬?",a:"ADH"},{q:"물 많이 마시면 ADH?",a:"감소"},{q:"나트륨 재흡수 호르몬?",a:"알도스테론"},{q:"삼투압 낮을 때 오줌?",a:"증가"},{q:"항상성 원리 피드백?",a:"음성"}],
+        TEM: [{q:"세포 호흡 촉진 호르몬?",a:"티록신"},{q:"갑상샘 자극 호르몬?",a:"TSH"},{q:"추울 때 근육?",a:"떨림"},{q:"티록신 과다 시 원리?",a:"음성피드백"},{q:"더울 때 혈관?",a:"확장"},{q:"추울 때 혈관?",a:"수축"},{q:"티록신 성분 원소?",a:"요오드"},{q:"추울 때 돋는 현상?",a:"소름"},{q:"중추 위치?",a:"간뇌"},{q:"땀 증발 에너지?",a:"기화열"}]
+    };
+
+    function typeWriter(text, elId, btnId, color) {
+        let i = 0; const el = document.getElementById(elId); el.innerHTML = ""; el.style.color = color; document.getElementById(btnId).style.display = "none";
+        function type() { if (i < text.length) { el.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i); i++; setTimeout(type, 30); } else { document.getElementById(btnId).style.display = "block"; } } type();
     }
 
     function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function closeIntro() { document.getElementById('intro-overlay').style.display = 'none'; if(currentStage === 1) initStage1(); else if(currentStage === 2) initStage2(); else initStage3(); }
+
+    function initStage1() {
+        const grid = document.getElementById('node-grid'); grid.innerHTML = '';
+        for(let i=1; i<=20; i++) {
+            const div = document.createElement('div'); div.id = `node-${i}`; div.className = 'node'; div.innerHTML = `<b>NODE ${i}</b>`; div.onclick = () => openModal(i); grid.appendChild(div);
+        }
+    }
+
+    function transitionToS2() { currentStage = 2; closeModal(); document.getElementById('intro-overlay').style.display = 'flex'; typeWriter(introS2, "type-text", "intro-btn", "var(--neon-s2)"); }
+
+    function initStage2() {
+        solvedCount = 0; document.getElementById('sys-name').innerText = "ST-2: NEURAL CORE REPAIR"; document.getElementById('game-frame').style.borderColor = "var(--neon-s2)"; document.getElementById('status-bar').style.borderBottomColor = "var(--neon-s2)"; document.getElementById('s1-hints').style.display = "none"; document.getElementById('s2-slots').style.display = "grid"; document.getElementById('action-btn').style.display = "none"; document.getElementById('repair-progress-container').style.display = "block"; updateRepairProgress();
+        const grid = document.getElementById('node-grid'); grid.innerHTML = '';
+        const nodeKeys = Object.keys(db2).sort(() => Math.random() - 0.5);
+        nodeKeys.forEach(k => {
+            const div = document.createElement('div'); div.id = `node-${k}`; div.className = 'node'; div.style.borderColor = 'var(--neon-s2)'; div.innerHTML = `<b>${db2[k].title}</b><br><span style='font-size:0.5rem; opacity:0.6;'>[REQ: ${db2[k].req || 'NONE'}]</span>`;
+            div.onclick = () => attemptNodeS2(k);
+            grid.appendChild(div);
+        });
+    }
+
+    function attemptNodeS2(k) {
+        const data = db2[k];
+        const selectedItem = selectedIdxS2 !== null ? inventoryS2[selectedIdxS2] : null;
+        if (data.req && selectedItem !== data.req) {
+            document.getElementById('ai-status').innerText = `AI STATUS: [장착 오류] '${data.req}' 장비가 필요함.`;
+            document.getElementById(`node-${k}`).classList.add('locked');
+            setTimeout(() => document.getElementById(`node-${k}`).classList.remove('locked'), 500);
+            return;
+        }
+        openModal(k);
+    }
+
+    function selectItemS2(idx) {
+        if (!inventoryS2[idx]) return;
+        document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+        if (selectedIdxS2 === idx) {
+            selectedIdxS2 = null;
+            document.getElementById('ai-status').innerText = `AI STATUS: 장비 해제됨.`;
+        } else {
+            selectedIdxS2 = idx;
+            document.getElementById(`slot${idx}`).classList.add('selected');
+            document.getElementById('ai-status').innerText = `AI STATUS: [${inventoryS2[idx]}] 장착 중.`;
+        }
+    }
+
+    function updateRepairProgress() { document.getElementById('repair-progress-fill').style.width = (solvedCount / 16) * 100 + "%"; document.getElementById('score').innerText = `FIXED: ${solvedCount} / 16`; }
+    function transitionToS3() { currentStage = 3; closeModal(); document.getElementById('intro-overlay').style.display = 'flex'; typeWriter(introS3, "type-text", "intro-btn", "var(--gold)"); }
+
+    function openModal(n) {
+        const data = currentStage === 1 ? db1[n] : db2[n];
+        let html = `<h3>${currentStage===2 ? data.title : 'NODE '+n}</h3><p>${data.q}</p>`;
+        if (data.opts) data.opts.forEach((o, i) => html += `<button class="opt-btn" onclick="checkAns(${n},${i})">${o}</button>`);
+        else html += `<input type="text" id="ans-${n}" placeholder="입력..."><button class="confirm-btn" onclick="checkAns(${n})">전송</button>`;
+        html += `<button class="opt-btn" style="color:#666;" onclick="closeModal()">취소</button>`;
+        document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex';
+    }
 
     function checkAns(n, idx) {
-        const data = db[n];
+        const data = currentStage === 1 ? db1[n] : db2[n];
         let correct = false;
         if (data.opts) { if (idx === data.a) correct = true; }
-        else { const val = document.getElementById('input-' + n).value.replace(/\s/g, ""); if (val === data.a) correct = true; }
-        
+        else { const val = document.getElementById(`ans-${n}`).value.trim().replace(/\s/g, ""); if (val === (currentStage === 1 ? db1[n].input : data.input)) correct = true; }
         if (correct) {
-            updateInv(n, data.h);
-            document.getElementById('node-' + n).classList.add('solved');
-            solvedCount++;
-            document.getElementById('score').innerText = 'RECOVERY: ' + solvedCount + ' / 20';
-            document.getElementById('ai-status').innerText = "AI STATUS: 긍정적 생체 신호 포착... 분석 지속.";
-            if(lockedNodeId) {
-                document.getElementById('node-' + lockedNodeId).classList.remove('locked');
-                lockedNodeId = null;
-            }
+            if (currentStage === 1) updateInvS1(n, data.h);
+            else { updateInvS2(data.get); document.getElementById(`node-${n}`).classList.add('solved'); solvedCount++; updateRepairProgress(); if(solvedCount===16) setTimeout(transitionToS3, 1000); selectedIdxS2 = null; document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected')); }
             closeModal();
         } else {
-            if(lockedNodeId) document.getElementById('node-' + lockedNodeId).classList.remove('locked');
-            lockedNodeId = n;
-            document.getElementById('node-' + n).classList.add('locked');
-            const msg = aiThreats[Math.floor(Math.random() * aiThreats.length)];
-            triggerGlitch(msg);
-            closeModal();
+            alert("바이오: 오답이다."); closeModal();
         }
     }
 
-    function triggerGlitch(msg) {
-        const glitch = document.getElementById('glitch-overlay');
-        document.getElementById('glitch-sub').innerText = msg;
-        glitch.style.display = 'flex';
+    function updateInvS1(n, h) {
+        const th = document.getElementById('text-hints'), dh = document.getElementById('data-hints'), mh = document.getElementById('metab-hints');
+        if(n<=6) th.innerText = th.innerText.substring(0, (n-1)*2) + h + th.innerText.substring(n*2-1);
+        else if(n<=12) dh.innerText = dh.innerText.replace('?', h); else mh.innerText = mh.innerText.replace('?', h);
     }
-    function closeGlitch() { document.getElementById('glitch-overlay').style.display = 'none'; }
+    function updateInvS2(item) { const free = inventoryS2.indexOf(null); if (free !== -1) { inventoryS2[free] = item; document.getElementById(`slot${free}`).innerText = item; document.getElementById(`slot${free}`).classList.add('has-item'); } }
+    function openFinalS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🔐 마스터 게이트</h3><input type="text" id="f1" placeholder="TEXT"><input type="text" id="f2" placeholder="NUM"><input type="text" id="f3" placeholder="CORE"><button class="confirm-btn" onclick="validateS1()">인증</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
+    function validateS1() { if(document.getElementById('f1').value.toUpperCase()==="BIOLOG" && document.getElementById('f2').value==="519" && document.getElementById('f3').value.toUpperCase()==="ATP2") { closeModal(); showRewardS1(); } else alert("실패."); }
+    function showRewardS1() { const content = document.getElementById('modal-content'); content.innerHTML = `<h3>🏆 CLEAR</h3><p>"사물함 1번 간식 보급."</p><button class="confirm-btn" onclick="transitionToS2()">STAGE 2</button>`; document.getElementById('modal-overlay').style.display = 'flex'; }
 
-    function updateInv(n, h) {
-        if(n <= 6) { textHints[n-1] = h; document.getElementById('text-hints').innerText = textHints.join(" "); }
-        else if(n >= 7 && n <= 12) {
-            if(n==7) dataHints.color = h; if(n==8) dataHints.lang = h;
-            if(n==10) dataHints.a = h; if(n==11) dataHints.b = h; if(n==12) dataHints.c = h;
-            document.getElementById('data-hints').innerText = '🎨:' + dataHints.color + ' | 🔤:' + dataHints.lang + ' | 🔢:' + dataHints.a + ' ' + dataHints.b + ' ' + dataHints.c;
-        } else if(n >= 13 && n <= 16) {
-            hyperHints[n-13] = h; document.getElementById('hyper-hints').innerText = 'N13-16: ' + hyperHints.join(" ");
-        } else {
-            coreHints[n-17] = h; document.getElementById('metab-hints').innerText = 'CORE: ' + coreHints.join(" ");
-        }
-    }
+    // S3 (생략 로직 유지)
+    function initStage3() { document.getElementById('sys-name').innerText = "ST-3: HOMEOSTASIS"; document.getElementById('game-frame').style.borderColor = "var(--gold)"; document.getElementById('status-bar').style.borderBottomColor = "var(--gold)"; document.getElementById('s2-slots').style.display = "none"; document.getElementById('repair-progress-container').style.display = "none"; document.getElementById('homeo-monitor').style.display = "flex"; document.getElementById('section-tabs').style.display = "flex"; document.getElementById('s3-controls').style.display = "flex"; updateGaugesS3(); switchTabS3('GLU'); }
+    function switchTabS3(t) { currentTabS3 = t; document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); document.getElementById(`tab-${t.toLowerCase()}`).classList.add('active'); renderNodesS3(); }
+    function renderNodesS3() { const grid = document.getElementById('node-grid'); grid.innerHTML = ''; db3[currentTabS3].forEach((q, i) => { const div = document.createElement('div'); div.className = 'node'; div.style.borderColor = 'var(--gold)'; if(solvedS3[currentTabS3].has(i)) { div.classList.add('solved'); div.innerHTML = "FIXED"; } else { div.innerHTML = `NODE ${i+1}`; div.onclick = () => openModalS3(i); } grid.appendChild(div); }); }
+    function openModalS3(i) { const data = db3[currentTabS3][i]; let html = `<h3>NODE ${i+1}</h3><p>${data.q}</p><input type="text" id="ans-s3"><button class="confirm-btn" onclick="checkAnsS3(${i})">전송</button>`; document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
+    function checkAnsS3(i) { const v = document.getElementById('ans-s3').value.trim().replace(/\s/g, ""); if(v === db3[currentTabS3][i].a) { solvedS3[currentTabS3].add(i); document.getElementById('btn-up').disabled = false; document.getElementById('btn-down').disabled = false; } else { statsS3[currentTabS3] += statsS3[currentTabS3]>=50 ? 18 : -18; } closeModal(); renderNodesS3(); updateGaugesS3(); }
+    function tuneS3(v) { statsS3[currentTabS3] += v; document.getElementById('btn-up').disabled = true; document.getElementById('btn-down').disabled = true; updateGaugesS3(); }
+    function updateGaugesS3() { ['GLU', 'OSM', 'TEM'].forEach(t => { const bar = document.getElementById(`bar-${t.toLowerCase()}`); let v = Math.max(0, Math.min(100, statsS3[t])); bar.style.width = v + '%'; bar.style.background = (v >= 40 && v <= 60) ? 'var(--safe)' : (v > 15 && v < 85) ? 'var(--warning)' : 'var(--danger)'; if(v <= 8 || v >= 92) { alert(`붕괴!`); solvedS3[t].clear(); statsS3[t] = 50; switchTabS3(t); } }); const safe = Object.values(statsS3).every(v => v >= 40 && v <= 60); document.getElementById('exit-btn').style.display = safe ? 'block' : 'none'; }
+    function finishStage() { document.body.innerHTML = "<h1 style='text-align:center; padding-top:40%'>STAGE 3 CLEAR</h1>"; }
 
-    function openFinal() {
-        const content = document.getElementById('modal-content');
-        content.innerHTML = '<h3>🔐 격리 구역 마스터 게이트</h3>' +
-            '<input type="text" id="f1" placeholder="TEXT(6자)">' +
-            '<input type="text" id="f2" placeholder="NUM(3자)">' +
-            '<input type="text" id="f3" placeholder="CORE(4자)">' +
-            '<button class="confirm-btn" onclick="validate()">격리 해제 실행</button>';
-        document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function validate() {
-        const v1 = document.getElementById('f1').value.toUpperCase();
-        const v2 = document.getElementById('f2').value;
-        const v3 = document.getElementById('f3').value.toUpperCase();
-        if(v1==="BIOLOG" && v2==="519" && v3==="ATP2") {
-            document.body.innerHTML = "<div style='background:#000; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px;'>"+
-            "<h1 style='color:var(--neon); font-size:2.5rem; text-shadow: 0 0 10px var(--neon);'>ESCAPE SUCCESS</h1>"+
-            "<p style='color:#fff; margin-top:20px;'>시스템 '바이오': \"생존 증명을 확인했다. 넌 살아남을 자격이 있군.\"</p>"+
-            "<div style='border:1px solid var(--gold); padding:20px; margin-top:30px; background:rgba(255,204,0,0.05);'>"+
-            "<p style='color:var(--gold); font-size:1.2rem; font-weight:bold;'>[물리적 에너지 보급]</p>"+
-            "<p style='color:#fff; line-height:1.6;'>\"생명체에겐 영양분이 필수적이지. <br>지금 즉시 고개를 들어 <b>교실 뒤편 1번 사물함</b>을 열어라. <br>그곳에 네 육체를 유지할 에너지원(간식)을 배치해 두었다.\"</p>"+
-            "</div>"+
-            "<p style='color:var(--neon); margin-top:40px; font-size:0.8rem;'>_STAGE 2 로딩 중..._</p></div>";
-        } else { alert("인증 데이터 불일치. 폐기 절차를 재개하겠다."); }
-    }
-
-    // 인트로 타이핑 효과
-    let i = 0;
-    function typeWriter() {
-        const text = introStr;
-        if (i < text.length) {
-            document.getElementById("type-text").innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
-            i++;
-            setTimeout(typeWriter, 35);
-        } else {
-            document.getElementById('start-btn').style.display = 'block';
-        }
-    }
-    function closeIntro() { 
-        document.getElementById('intro-overlay').style.display = 'none'; 
-        initNodes(); 
-    }
-    window.onload = typeWriter;
+    window.onload = () => typeWriter(introS1, "type-text", "intro-btn", "var(--neon-s1)");
 </script>
 </body>
 </html>
